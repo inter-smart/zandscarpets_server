@@ -1,5 +1,5 @@
 const express = require('express');
-const Controller = require('../../http/controllers/siteSettings/pageSectionsController');
+const Controller = require('../../http/controllers/SiteSettings/pageSectionsController');
 const authMiddleware = require('../../http/middleware/authMiddleware');
 
 const router = express.Router();
