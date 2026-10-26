@@ -31,7 +31,10 @@ export const BREVO_SMTP_PASS = process.env.BREVO_SMTP_PASS;
 export const BASE_URL = process.env.BASE_URL;
 export const RECAPTCHA_SECRET_KEY = process.env.RECAPTCHA_SECRET_KEY;
 // Public storefront URL, used for the logo / "Visit Website" link in outgoing emails.
-export const SITE_URL = (process.env.SITE_URL || "https://z-and-s-carpets-dev.vercel.app").replace(/\/+$/, "");
+if (!process.env.SITE_URL) {
+  throw new Error("SITE_URL env var is required (public storefront URL used in emails)");
+}
+export const SITE_URL = process.env.SITE_URL.replace(/\/+$/, "");
 
 export const OTP_TTL_SECONDS = 5 * 60; // OTP + attempts counter both expire in 5 minutes
 export const OTP_MAX_ATTEMPTS = 3;
