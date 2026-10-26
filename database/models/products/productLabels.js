@@ -39,6 +39,12 @@ module.exports = (sequelize) => {
         type: DataTypes.BOOLEAN,
         defaultValue: false,
       },
+      // Tags only: show this tag in the storefront listing page's filter section.
+      show_in_filter: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
       sort_order: {
         type: DataTypes.SMALLINT,
         defaultValue: 0,

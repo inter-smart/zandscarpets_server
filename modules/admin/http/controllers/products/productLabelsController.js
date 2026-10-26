@@ -71,7 +71,7 @@ class ProductLabelController {
       const result = await dataModel.findAll({
         where,
         order: [["sort_order", "ASC"]],
-        attributes: ["id", "title", "title_ar", "type", "is_product_badge"],
+        attributes: ["id", "title", "title_ar", "type", "is_product_badge", "show_in_filter"],
       });
 
       return sendSuccessResponse(res, result, "Product label list retrieved successfully");

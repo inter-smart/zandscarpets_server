@@ -54,7 +54,17 @@ const variantHasChosenValue = (index) => `EXISTS (
     AND av${index}.slug IN (:vals${index})
 )`;
 
-const setGroupReplacements = (replacements, groups) =>
+// SQL: "product `p` carries one of the chosen tags". Uses the replacement `tagSlugs`.
+const PRODUCT_HAS_CHOSEN_TAG = `EXISTS (
+  SELECT 1
+  FROM product_label_map plm
+  JOIN product_labels tl
+    ON tl.id = plm.label_id AND tl.type = 'tag' AND tl.is_active = true AND tl.deleted_at IS NULL
+  WHERE plm.product_id = p.id
+    AND tl.slug IN (:tagSlugs)
+)`;
+
+const setGroupReplacements =(replacements, groups) =>
   groups.forEach(([attributeSlug, valueSlugs], index) => {
     replacements[`attr${index}`] = attributeSlug;
     replacements[`vals${index}`] = valueSlugs;
@@ -191,13 +201,15 @@ class ProductsService {
   //    categories plus the sub-categories of the ones that are open: a selected category (`?category=`)
   //    and every ancestor of a selected category. Only categories with an active product in them
   //    or in a sub-category are included.
-  //  - attributes: the values of the current result set, with product counts (see attributeFacets)
+  //  - attributes: the values of the current result set (see attributeFacets)
+  //  - tags: the tag labels flagged `show_in_filter` that are on at least one active product
   static async filters(req) {
     // slug '' never matches; it keeps the IN list non-empty when nothing is selected
     const selectedSlugs = parseList(req?.query?.category);
     const attributeGroups = parseAttributes(req?.query?.attrs);
+    const tagSlugs = parseList(req?.query?.tag);
 
-    const [categoryRows, valueRows] = await Promise.all([
+    const [categoryRows, valueRows, tagRows] = await Promise.all([
       sequelize.query(
         `
         WITH RECURSIVE used AS (
@@ -237,7 +249,24 @@ class ProductsService {
           type: QueryTypes.SELECT,
         },
       ),
-      this.attributeFacets(selectedSlugs, attributeGroups),
+      this.attributeFacets(selectedSlugs, attributeGroups, tagSlugs),
+      sequelize.query(
+        `
+        SELECT l.slug, l.title, l.title_ar
+        FROM product_labels l
+        WHERE l.type = 'tag' AND l.show_in_filter = true AND l.is_active = true AND l.deleted_at IS NULL
+          AND l.slug IS NOT NULL
+          AND EXISTS (
+            SELECT 1
+            FROM product_label_map plm
+            JOIN products p ON p.id = plm.product_id AND p.is_active = true AND p.deleted_at IS NULL
+            JOIN product_categories pc
+              ON pc.id = p.product_category_id AND pc.is_active = true AND pc.deleted_at IS NULL
+            WHERE plm.label_id = l.id
+          )
+        ORDER BY l.sort_order ASC, l.id ASC`,
+        { type: QueryTypes.SELECT },
+      ),
     ]);
 
     const attributes = new Map();
@@ -254,7 +283,6 @@ class ProductsService {
         slug: row.value_slug,
         value: text(row.value),
         value_ar: text(row.value_ar),
-        count: row.product_count,
       });
     }
 
@@ -267,6 +295,7 @@ class ProductsService {
           parent_slug: row.parent_slug ?? null,
         })),
         attributes: [...attributes.values()],
+        tags: tagRows.map(toOption),
       },
     };
   }
@@ -275,9 +304,9 @@ class ProductsService {
   // For each attribute, a value is offered when some active product, within the selected
   // categories, has an active variant with that value which also satisfies the chosen values of
   // the OTHER attributes (the attribute's own choice is left out, so you can still add
-  // alternatives in the same group). `product_count` is the number of such products. Values the
-  // visitor already chose are always kept, with a count of 0 when nothing matches any more.
-  static async attributeFacets(categorySlugs, attributeGroups) {
+  // alternatives in the same group), and carries one of the chosen tags. Values the visitor
+  // already chose are always kept, even when nothing matches any more.
+  static async attributeFacets(categorySlugs, attributeGroups, tagSlugs = []) {
     const replacements = {};
     setGroupReplacements(replacements, attributeGroups);
 
@@ -287,6 +316,10 @@ class ProductsService {
         "p.product_category_id IN (SELECT id FROM product_categories WHERE slug IN (:categorySlugs) AND is_active = true AND deleted_at IS NULL)",
       );
       replacements.categorySlugs = categorySlugs;
+    }
+    if (tagSlugs.length) {
+      conditions.push(PRODUCT_HAS_CHOSEN_TAG);
+      replacements.tagSlugs = tagSlugs;
     }
     attributeGroups.forEach((_, index) =>
       conditions.push(`(a.slug = :attr${index} OR ${variantHasChosenValue(index)})`),
@@ -343,15 +376,22 @@ class ProductsService {
   //    sub-category's products come with it when it is selected too)
   //  - `?attrs=color:oak,color:grey,size:2m`: attribute:value slugs. A product matches when one of
   //    its active variants has, for every attribute given, one of the chosen values.
+  //  - `?tag=a,b`: tag label slugs; a product matches when it carries any of them
   // Raw SQL: one query for the page, one for the total.
   static async list(req) {
     const page = toPositiveInt(req?.query?.page, 1);
     const limit = Math.min(toPositiveInt(req?.query?.limit, DEFAULT_LIMIT), MAX_LIMIT);
     const categorySlugs = parseList(req?.query?.category);
     const attributeGroups = parseAttributes(req?.query?.attrs);
+    const tagSlugs = parseList(req?.query?.tag);
 
     const where = ["p.deleted_at IS NULL", "p.is_active = true"];
     const replacements = { limit, offset: (page - 1) * limit };
+
+    if (tagSlugs.length) {
+      where.push(PRODUCT_HAS_CHOSEN_TAG);
+      replacements.tagSlugs = tagSlugs;
+    }
 
     if (categorySlugs.length) {
       // an unknown / disabled category matches nothing

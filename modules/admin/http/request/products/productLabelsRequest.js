@@ -12,6 +12,10 @@ const validationRequestPost = [
     .optional({ checkFalsy: true })
     .isBoolean()
     .withMessage("Is product badge must be a boolean"),
+  body("show_in_filter")
+    .optional({ checkFalsy: true })
+    .isBoolean()
+    .withMessage("Show in filter must be a boolean"),
   body("sort_order").notEmpty().withMessage("Sort order is required").isInt({ min: 0 }).withMessage("Sort order must be an integer"),
   body("is_active").notEmpty().withMessage("Is active is required").isBoolean().withMessage("Is active must be a boolean"),
 ];
