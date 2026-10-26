@@ -94,6 +94,18 @@ const narrowChosen = (variants, attributeSlugs, initialChosen) => {
   return chosen;
 };
 
+// SQL: "no ancestor of category `alias` is disabled or deleted". UNION (not UNION ALL) keeps a
+// bad parent_id cycle from recursing forever. Combine with the category's own is_active check.
+const ANCESTORS_ACTIVE = (alias) => `NOT EXISTS (
+  WITH RECURSIVE anc(id) AS (
+    SELECT ${alias}.parent_id
+    UNION
+    SELECT up.parent_id FROM product_categories up JOIN anc ON up.id = anc.id
+  )
+  SELECT 1 FROM product_categories x
+  WHERE x.id IN (SELECT id FROM anc) AND (x.is_active = false OR x.deleted_at IS NOT NULL)
+)`;
+
 const CARD_COLUMNS = `
         p.id,
         p.slug,
@@ -113,6 +125,7 @@ const CARD_COLUMNS = `
 
 const CARD_JOINS = `
       JOIN product_categories c ON c.id = p.product_category_id AND c.is_active = true AND c.deleted_at IS NULL
+        AND ${ANCESTORS_ACTIVE("c")}
       LEFT JOIN product_labels b ON b.id = p.badge_label_id AND b.is_active = true AND b.deleted_at IS NULL`;
 
 // One product card (listing + related carousel)
@@ -216,6 +229,7 @@ class ProductsService {
           SELECT c.id, c.parent_id
           FROM product_categories c
           WHERE c.is_active = true AND c.deleted_at IS NULL
+            AND ${ANCESTORS_ACTIVE("c")}
             AND EXISTS (
               SELECT 1 FROM products p
               WHERE p.product_category_id = c.id AND p.is_active = true AND p.deleted_at IS NULL
@@ -262,6 +276,7 @@ class ProductsService {
             JOIN products p ON p.id = plm.product_id AND p.is_active = true AND p.deleted_at IS NULL
             JOIN product_categories pc
               ON pc.id = p.product_category_id AND pc.is_active = true AND pc.deleted_at IS NULL
+              AND ${ANCESTORS_ACTIVE("pc")}
             WHERE plm.label_id = l.id
           )
         ORDER BY l.sort_order ASC, l.id ASC`,
@@ -338,6 +353,7 @@ class ProductsService {
       JOIN products p ON p.id = v.product_id AND p.is_active = true AND p.deleted_at IS NULL
       JOIN product_categories pc
         ON pc.id = p.product_category_id AND pc.is_active = true AND pc.deleted_at IS NULL
+        AND ${ANCESTORS_ACTIVE("pc")}
       WHERE ${conditions.join("\n        AND ")}
       GROUP BY a.id, a.slug, a.title, a.title_ar, a.sort_order, av.id, av.slug, av.value, av.value_ar, av.sort_order
       ORDER BY a.sort_order ASC, a.id ASC, av.sort_order ASC, av.id ASC`;
@@ -459,6 +475,7 @@ class ProductsService {
          b.slug AS badge_slug, b.title AS badge_title, b.title_ar AS badge_title_ar
        FROM products p
        JOIN product_categories c ON c.id = p.product_category_id AND c.is_active = true AND c.deleted_at IS NULL
+         AND ${ANCESTORS_ACTIVE("c")}
        LEFT JOIN product_labels b ON b.id = p.badge_label_id AND b.is_active = true AND b.deleted_at IS NULL
        WHERE p.slug = :slug AND p.is_active = true AND p.deleted_at IS NULL
        LIMIT 1`,
