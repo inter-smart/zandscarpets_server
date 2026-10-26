@@ -8,11 +8,23 @@ const text = (value) => value ?? "";
 const { BASE_URL } = require("../../../../../constants");
 const absoluteUrl = (relativePath) => (relativePath ? `${BASE_URL}/${relativePath}` : null);
 
-// Same convention as the home / about APIs: both languages per field, flat list, no pagination
-// (a handful of catalogue/brochure PDFs — no need for Load More here).
+const DEFAULT_LIMIT = 12;
+const MAX_LIMIT = 48;
+
+const toPositiveInt = (value, fallback) => {
+  const parsed = parseInt(value, 10);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+// Same convention as the home / about APIs: both languages per field. The downloads list is
+// paginated (`?page=1&limit=12`) for the storefront's Load More.
 class DownloadsService {
-  static async page() {
-    const [banner = [], otherMeta, rows] = await Promise.all([
+  static async page(req) {
+    const page = toPositiveInt(req?.query?.page, 1);
+    const limit = Math.min(toPositiveInt(req?.query?.limit, DEFAULT_LIMIT), MAX_LIMIT);
+    const offset = (page - 1) * limit;
+
+    const [banner = [], otherMeta, rows, countRows] = await Promise.all([
       models.Banners.findAll({
         include: [
           {
@@ -30,10 +42,18 @@ class DownloadsService {
                 file_original_filename, file_size_bytes
          FROM downloads
          WHERE is_active = true AND deleted_at IS NULL
-         ORDER BY sort_order ASC, id ASC`,
+         ORDER BY sort_order ASC, id ASC
+         LIMIT :limit OFFSET :offset`,
+        { replacements: { limit, offset }, type: QueryTypes.SELECT },
+      ),
+      sequelize.query(
+        `SELECT COUNT(*)::int AS count FROM downloads WHERE is_active = true AND deleted_at IS NULL`,
         { type: QueryTypes.SELECT },
       ),
     ]);
+
+    const count = countRows[0]?.count ?? 0;
+    const totalPages = Math.max(Math.ceil(count / limit), 1);
 
     const bannerSection = {
       title: text(banner[0]?.title),
@@ -60,6 +80,7 @@ class DownloadsService {
             size_bytes: row.file_size_bytes ?? null,
           },
         })),
+        pagination: { page, limit, totalCount: count, totalPages, hasMore: page < totalPages },
       },
     };
   }
