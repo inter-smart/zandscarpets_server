@@ -478,7 +478,66 @@ async function importProductMain(normalizedRows, { models, transaction }) {
   return { created, updated, skipped: 0, categoriesCreated, attributesCreated, attributeValuesCreated, variantsCreated, labelsCreated };
 }
 
+async function importBlogs(normalizedRows, { models, transaction }) {
+  let created = 0;
+  let updated = 0;
+
+  for (const row of normalizedRows) {
+    const fields = {
+      title: row.title,
+      title_ar: row.title_ar,
+      excerpt: row.excerpt,
+      excerpt_ar: row.excerpt_ar,
+      content: row.content,
+      content_ar: row.content_ar,
+      media_alt: row.media_alt ?? null,
+      media_alt_ar: row.media_alt_ar ?? null,
+      published_at: row.published_at,
+      is_active: row.is_active,
+    };
+
+    let slug = row.slug;
+    if (row.mode === "update") {
+      const item = await models.Blogs.findByPk(row.existingId, { transaction });
+      // A missing image file never wipes the image a post already has.
+      if (row.media_path) fields.media_path = row.media_path;
+      if (row.image_missing && !row.existingHasImage) fields.is_active = false;
+      await item.update(fields, { transaction });
+      updated += 1;
+    } else {
+      slug = await generateUniqueSlug(models.Blogs, row.slug, { transaction });
+      fields.slug = slug;
+      fields.media_path = row.media_path ?? null;
+      // No hero image yet: keep it off the storefront until one is added.
+      if (row.image_missing) fields.is_active = false;
+      await models.Blogs.create(fields, { transaction });
+      created += 1;
+    }
+
+    // SEO lives in MetaData keyed by the blog slug (not a FK).
+    const metaFields = {
+      type: "blog",
+      blog_id: slug,
+      meta_title: row.meta_title,
+      meta_title_ar: row.meta_title,
+      meta_description: row.meta_description,
+      meta_description_ar: row.meta_description,
+      meta_keywords: row.meta_keywords,
+      meta_keywords_ar: row.meta_keywords,
+    };
+    const existingMeta = await models.MetaData.findOne({ where: { type: "blog", blog_id: slug }, transaction });
+    if (existingMeta) {
+      await existingMeta.update(metaFields, { transaction });
+    } else {
+      await models.MetaData.create(metaFields, { transaction });
+    }
+  }
+
+  return { created, updated, skipped: 0 };
+}
+
 module.exports = {
+  importBlogs,
   importCategories,
   importAttributes,
   importAttributeValues,

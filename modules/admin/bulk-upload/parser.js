@@ -27,7 +27,10 @@ async function parseWorkbook(buffer, config) {
     return { ok: false, errors: [structuralError("WRONG_FILE_TYPE")], rows: [] };
   }
 
-  const dataSheet = workbook.getWorksheet(config.sheetName);
+  // Legacy exports (config.acceptLegacyExport) have no template sheet names, so
+  // fall back to the first worksheet; header matching below still applies.
+  const dataSheet =
+    workbook.getWorksheet(config.sheetName) || (config.acceptLegacyExport ? workbook.worksheets[0] : undefined);
   if (!dataSheet) {
     return {
       ok: false,
@@ -38,7 +41,8 @@ async function parseWorkbook(buffer, config) {
 
   const metaSheet = workbook.getWorksheet(META_SHEET_NAME);
   const templateVersion = metaSheet ? Number(metaSheet.getCell("B1").value) : undefined;
-  if (!templateVersion || templateVersion !== config.templateVersion) {
+  const skipVersionCheck = config.acceptLegacyExport && !metaSheet;
+  if (!skipVersionCheck && (!templateVersion || templateVersion !== config.templateVersion)) {
     return {
       ok: false,
       errors: [

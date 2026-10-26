@@ -97,6 +97,25 @@ const messages = {
   ATTRIBUTE_VALUE_MISSING_FOR_TYPE: ({ attributeType, missingFields }) =>
     `Attribute type ${quote(attributeType)} requires: ${missingFields.join(", ")}`,
 
+  TEXT_TOO_LONG: ({ column, max }) => `${column} must be at most ${max} characters`,
+
+  INVALID_DATE: ({ column, value }) =>
+    `${column} must be a date in the form YYYY-MM-DD. You entered ${quote(value)}`,
+
+  BLOG_DUPLICATE_IN_FILE: ({ column, value, otherRow }) =>
+    `${column} ${quote(value)} is the same as row ${otherRow} in this file — keep only one of the two posts`,
+
+  BLOG_IMAGE_BAD_NAME: ({ value }) =>
+    `Image ${quote(value)} must be a file name ending in .jpg, .jpeg, .png or .webp, with no folders`,
+
+  BLOG_IMAGE_NOT_FOUND: ({ value }) =>
+    `Image ${quote(value)} was not found in uploads/blog_images/ — the post will be imported as inactive until the image is added`,
+
+  BLOG_TEST_POST_SKIPPED: ({ value }) =>
+    `${quote(value)} looks like a test post and was skipped`,
+
+  BLOG_KEYWORDS_TRUNCATED: () => `Meta Keyword was longer than 255 characters and was cut`,
+
   OUTDATED_TEMPLATE: ({ got, expected }) =>
     `This template is out of date (version ${got}, current is ${expected}). Download a fresh template and re-fill your data`,
 
