@@ -13,7 +13,7 @@ const upload = createUploadMiddleware("floating-icons", uploadFields, {
   iconOnly: true,
 });
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "site_elements" }));
 router.get("/", Controller.list);
 router.get("/:id", Controller.getById);
 router.post("/", upload, Controller.create);

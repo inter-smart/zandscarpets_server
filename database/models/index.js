@@ -1,6 +1,8 @@
 const sequelize = require("../config/index");
 
 const defineAdminUser = require("./admin/adminuser");
+const defineAdminRole = require("./admin/adminRole");
+const defineAdminRolePermission = require("./admin/adminRolePermission");
 const defineAdminRefreshToken = require("./admin/adminRefreshToken");
 const defineSiteSettings = require("./siteSettings/siteSettings");
 const defineSocialMedia = require("./siteSettings/socialMedia");
@@ -75,6 +77,8 @@ const defineCommonHowItWorks = require("./common/commonHowItWorks");
 
 // product masters
 const models = {
+  AdminRole: defineAdminRole(sequelize),
+  AdminRolePermission: defineAdminRolePermission(sequelize),
   AdminUser: defineAdminUser(sequelize),
   AdminRefreshToken: defineAdminRefreshToken(sequelize),
   SiteSettings: defineSiteSettings(sequelize),

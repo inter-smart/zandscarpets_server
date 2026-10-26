@@ -11,7 +11,7 @@ const upload = createUploadMiddleware("blogs", [{ name: "media_path" }]);
 // images dropped into the article body (one file per request, field `file`)
 const uploadContentImage = createUploadMiddleware("blogs-content", [{ name: "file" }]);
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "blogs" }));
 router.get("/active", Controller.getActive);
 router.post("/upload-image", uploadContentImage, Controller.uploadImage);
 router.get("/", Controller.list);

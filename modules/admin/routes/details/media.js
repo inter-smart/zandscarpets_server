@@ -15,7 +15,7 @@ const upload = createUploadMiddleware(
   { maxFileSizeBytes: MAX_VIDEO_SIZE_BYTES },
 );
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "catalog" }));
 router.get("/", Controller.list);
 router.post("/cleanup-orphans", Controller.cleanupOrphans);
 router.get("/:id", Controller.getById);

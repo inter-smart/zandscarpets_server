@@ -12,7 +12,7 @@ const uploadFields = [
 ];
 const upload = createUploadMiddleware('about-cms', uploadFields);
 
-router.use(authMiddleware(['admin', 'user']));
+router.use(authMiddleware({ module: "website_pages" }));
 router.get("/", Controller.get);
 router.put("/:id", upload, Controller.update);
 

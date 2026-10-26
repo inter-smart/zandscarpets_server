@@ -14,7 +14,7 @@ const upload = createUploadMiddleware("social-media", uploadFields, {
   maxFileSizeBytes: 100 * 1024,
 });
 
-router.use(authMiddleware(["admin", 'user']));
+router.use(authMiddleware({ module: "settings" }));
 router.get("/", Controller.list);
 router.get("/:id", Controller.getById);
 router.post("/", upload, Controller.create);

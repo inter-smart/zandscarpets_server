@@ -11,7 +11,7 @@ const upload = createUploadMiddleware('home-cms', [
   { name: 'space_bg_image' },
 ]);
 
-router.use(authMiddleware(['admin', 'user']));
+router.use(authMiddleware({ module: "website_pages" }));
 router.get("/", Controller.get);
 router.put("/:id", upload, Controller.update);
 

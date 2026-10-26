@@ -4,7 +4,7 @@ const authMiddleware = require("../../http/middleware/authMiddleware");
 
 const router = express.Router();
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "seo" }));
 router.get("/", Controller.list);
 router.get("/:id", Controller.getById);
 router.post("/", Controller.create);

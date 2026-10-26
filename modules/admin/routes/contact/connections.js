@@ -8,7 +8,7 @@ const router = express.Router();
 const uploadFields = [{ name: "icon_media_path" }];
 const upload = createUploadMiddleware("connections", uploadFields);
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "website_pages" }));
 router.get("/", Controller.list);
 router.get("/:id", Controller.getById);
 router.post("/", upload, Controller.create);

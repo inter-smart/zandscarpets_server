@@ -11,7 +11,7 @@ const upload = createUploadMiddleware(
   { maxFileSizeBytes: 10 * 1024 * 1024 }, // room for video
 );
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "shared_blocks" }));
 router.get("/", Controller.get);
 router.put("/:id", upload, Controller.update);
 

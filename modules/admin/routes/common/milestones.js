@@ -8,7 +8,7 @@ const router = express.Router();
 const uploadFields = [{ name: "media_path" }];
 const upload = createUploadMiddleware("common-milestones", uploadFields);
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "shared_blocks" }));
 router.get("/", Controller.list);
 router.get("/:id", Controller.getById);
 router.post("/", upload, Controller.create);

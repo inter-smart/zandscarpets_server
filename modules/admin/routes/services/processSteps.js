@@ -11,7 +11,7 @@ const uploadFields = [{ name: "media_path" }];
 
 const upload = createUploadMiddleware("process-step", uploadFields);
 
-router.use(authMiddleware(["admin", 'user']));
+router.use(authMiddleware({ module: "services" }));
 router.get("/", Controller.list);
 router.get("/:id", Controller.getById);
 router.post("/", upload, Controller.create);

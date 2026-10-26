@@ -5,7 +5,7 @@ const authMiddleware = require("../http/middleware/authMiddleware");
 const router = express.Router();
 
 // User management is admin-only.
-router.use(authMiddleware(["admin"]));
+router.use(authMiddleware({ module: "users" }));
 
 router.get("/", Controller.list);
 router.get("/:id", Controller.getById);

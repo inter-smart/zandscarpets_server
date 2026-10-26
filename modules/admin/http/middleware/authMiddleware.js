@@ -1,8 +1,17 @@
 const jwt = require('jsonwebtoken');
-const { sendUnauthorizedError } = require('../traits/responseHandler');
+const { sendUnauthorizedError, sendForbiddenError } = require('../traits/responseHandler');
+const { getUserAccess, hasAccess } = require('../../../../services/permissionService');
 const { JWT_SECRET } = require('../../../../constants');
 
-module.exports = (roles = []) => {
+const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
+
+// authMiddleware()                       → any logged-in user
+// authMiddleware({ module: 'catalog' })  → dynamic RBAC: GET needs "view", writes need "manage"
+// authMiddleware(['admin', 'user'])      → legacy role-name check (kept for routes not yet migrated)
+module.exports = (options = []) => {
+  const roles = Array.isArray(options) ? options : [];
+  const module_ = Array.isArray(options) ? null : options.module;
+
   return async (req, res, next) => {
 
     try {
@@ -24,8 +33,18 @@ module.exports = (roles = []) => {
       // Verify JWT
       const decoded = jwt.verify(token, JWT_SECRET);
 
-      // Check role
-      if (roles.length && !roles.includes(decoded.role)) {
+      if (module_) {
+        // Read the user's current access from the DB/cache, not the token, so role edits apply at once.
+        const access = await getUserAccess(decoded.id, redisClient);
+        if (!access) {
+          return sendUnauthorizedError(res, 'Account not found or inactive');
+        }
+        const level = READ_METHODS.has(req.method) ? 'view' : 'manage';
+        if (!hasAccess(access, module_, level)) {
+          return sendForbiddenError(res, `You don't have ${level} permission for this module`);
+        }
+        req.access = access;
+      } else if (roles.length && !roles.includes(decoded.role)) {
         return sendUnauthorizedError(res, 'Insufficient permissions');
       }
 

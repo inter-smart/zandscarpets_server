@@ -11,7 +11,7 @@ const router = express.Router();
 const uploadFields = [{ name: "thumbnail" }, { name: "media_path" }];
 const upload = createUploadMiddleware("projects", uploadFields);
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "projects" }));
 router.get("/active", Controller.getActiveProjects);
 router.get("/", Controller.list);
 router.get("/:id", Controller.getById);

@@ -47,7 +47,9 @@ const AdminRefreshToken = models.AdminRefreshToken;
 // Window in which a just-rotated refresh token is tolerated (concurrent refreshes).
 const REFRESH_GRACE_MS = 15 * 1000;
 
-const SAFE_USER_ATTRIBUTES =["id", "username", "email", "role", "updatedAt"];
+const SAFE_USER_ATTRIBUTES = ["id", "username", "email", "role_id", "updatedAt"];
+const { serializeUser } = require("../../../../services/permissionService");
+const redisOf = (req) => req.app.get("redisClient");
 
 const otpKey = (userId) => `pwreset:otp:${userId}`;
 const otpAttemptsKey = (userId) => `pwreset:attempts:${userId}`;
@@ -56,7 +58,7 @@ const resetTokenKey = (hashedToken) => `pwreset:token:${hashedToken}`;
 
 const signAccessToken = (user) =>
   jwt.sign(
-    { id: user.id, username: user.username, role: user.role },
+    { id: user.id, username: user.username, role_id: user.role_id },
     JWT_SECRET,
     {
       expiresIn: ACCESS_TOKEN_EXPIRES_IN,
@@ -87,7 +89,7 @@ class AuthController {
     if (!errors.isEmpty()) return sendValidationError(res, errors);
 
     try {
-      const { username, password, email, role } = req.body;
+      const { username, password, email } = req.body;
 
       // Check existing user
       const existingUserByUsername = await AdminUser.findOne({
@@ -109,9 +111,10 @@ class AuthController {
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 12);
 
+      const defaultRole = await models.AdminRole.findOne({ where: { slug: "staff" } });
       const user = await sequelize.transaction(async (t) =>
         AdminUser.create(
-          { username, email, password: hashedPassword, role: role || "user" },
+          { username, email, password: hashedPassword, role_id: defaultRole?.id ?? null },
           { transaction: t },
         ),
       );
@@ -156,7 +159,7 @@ class AuthController {
       if (!isPasswordValid)
         return sendUnauthorizedError(res, "Invalid password");
 
-      const { password: _password, ...safeUser } = user.toJSON();
+      const safeUser = await serializeUser(user, redisOf(req));
 
       const accessToken = signAccessToken(safeUser);
       const { rawToken: refreshToken } = await issueRefreshToken(safeUser.id);
@@ -216,7 +219,11 @@ class AuthController {
           return sendUnauthorizedError(res, "User not found");
         }
         setAccessCookie(res, signAccessToken(user));
-        return sendSuccessResponse(res, { user }, "Token refreshed");
+        return sendSuccessResponse(
+          res,
+          { user: await serializeUser(user, redisOf(req)) },
+          "Token refreshed",
+        );
       };
 
       if (existingRow.revokedAt) {
@@ -280,7 +287,11 @@ class AuthController {
         refreshToken: rotated,
       });
 
-      sendSuccessResponse(res, { user }, "Token refreshed");
+      sendSuccessResponse(
+        res,
+        { user: await serializeUser(user, redisOf(req)) },
+        "Token refreshed",
+      );
     } catch (error) {
       console.error("Refresh error:", error);
       sendErrorResponse(res, error);
@@ -338,7 +349,11 @@ class AuthController {
 
       if (!user) return sendUnauthorizedError(res, "User not found");
 
-      sendSuccessResponse(res, { user }, "Current user");
+      sendSuccessResponse(
+        res,
+        { user: await serializeUser(user, redisOf(req)) },
+        "Current user",
+      );
     } catch (error) {
       console.error("Me error:", error);
       sendErrorResponse(res, error);

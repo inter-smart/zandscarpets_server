@@ -4,7 +4,7 @@ const authMiddleware = require("../../http/middleware/authMiddleware");
 
 const router = express.Router();
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "catalog" }));
 
 // Product-level field management.
 router.get("/products/:productId", Controller.listForProduct);

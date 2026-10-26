@@ -7,7 +7,7 @@ const router = express.Router();
 
 const upload = createUploadMiddleware("products", [{ name: "main_media_path" }, { name: "list_media_path" }]);
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "catalog" }));
 router.get("/active", Controller.getActive);
 router.get("/", Controller.list);
 router.get("/:id", Controller.getById);

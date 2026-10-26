@@ -1,4 +1,5 @@
 const bcrypt = require("bcrypt");
+const { Op } = require("sequelize");
 const { models } = require("../../../../../database/models");
 const {
   sendSuccessResponse,
@@ -16,8 +17,20 @@ const {
 const { validationResult } = require("express-validator");
 
 const dataModel = models.AdminUser;
+const { AdminRole } = models;
+const { invalidateUser } = require("../../../../../services/permissionService");
 
-const SAFE_ATTRIBUTES = ["id", "username", "email", "role", "is_active", "updatedAt"];
+const redisOf = (req) => req.app.get("redisClient");
+const roleInclude = [{ model: AdminRole, as: "roleInfo", attributes: ["id", "name", "slug", "is_system"] }];
+
+/** Active users currently holding a system (Admin) role, excluding `exceptId`. */
+const otherActiveAdmins = (exceptId) =>
+  dataModel.count({
+    where: { is_active: true, ...(exceptId && { id: { [Op.ne]: exceptId } }) },
+    include: [{ model: AdminRole, as: "roleInfo", where: { is_system: true }, attributes: [] }],
+  });
+
+const SAFE_ATTRIBUTES = ["id", "username", "email", "role_id", "is_active", "updatedAt"];
 
 const BCRYPT_ROUNDS = 12;
 
@@ -28,6 +41,7 @@ class UserController {
         order: [["id", "ASC"]],
         searchFields: ["username", "email"],
         attributes: SAFE_ATTRIBUTES,
+        include: roleInclude,
       });
 
       sendSuccessResponse(res, result, "User list retrieved successfully");
@@ -46,7 +60,7 @@ class UserController {
     try {
       const { id } = req.params;
 
-      const item = await dataModel.findByPk(id, { attributes: SAFE_ATTRIBUTES });
+      const item = await dataModel.findByPk(id, { attributes: SAFE_ATTRIBUTES, include: roleInclude });
       if (!item) {
         return sendNotFoundError(res, "User");
       }
@@ -63,7 +77,14 @@ class UserController {
       const errors = validationResult(req);
       if (!errors.isEmpty()) return sendValidationError(res, errors);
 
-      const { username, email, password, role, is_active } = req.body;
+      const { username, email, password, role_id, is_active } = req.body;
+
+      let roleId = role_id;
+      if (roleId === undefined) {
+        roleId = (await AdminRole.findOne({ where: { slug: "staff" } }))?.id;
+      } else if (!(await AdminRole.findByPk(roleId))) {
+        return sendValidationError(res, [{ msg: "Selected role does not exist", path: "role_id" }]);
+      }
 
       const existingByUsername = await dataModel.findOne({ where: { username } });
       if (existingByUsername) {
@@ -81,7 +102,7 @@ class UserController {
         username,
         email,
         password: hashedPassword,
-        role: role || "user",
+        role_id: roleId ?? null,
         ...(is_active !== undefined && { is_active }),
       });
 
@@ -104,9 +125,9 @@ class UserController {
 
     try {
       const { id } = req.params;
-      const { username, email, password, role, is_active } = req.body;
+      const { username, email, password, role_id, is_active } = req.body;
 
-      const item = await dataModel.findByPk(id);
+      const item = await dataModel.findByPk(id, { include: roleInclude });
       if (!item) {
         return sendNotFoundError(res, "User");
       }
@@ -124,17 +145,32 @@ class UserController {
           return sendConflictError(res, "User", "Email already exists");
         }
       }
-      console.log("USER ID: ", typeof req.user.id, "ID: ", typeof id);
-
       // DO not set status false of  the admin user
       if(req.user.id == id && is_active === false){
         return sendConflictError(res, "User", "You cannot disable your own account");
       }
 
+      if (role_id !== undefined && role_id !== item.role_id) {
+        if (Number(req.user.id) === Number(id)) {
+          return sendConflictError(res, "User", "You cannot change your own role");
+        }
+        if (!(await AdminRole.findByPk(role_id))) {
+          return sendValidationError(res, [{ msg: "Selected role does not exist", path: "role_id" }]);
+        }
+      }
+
+      // Never leave the system without an active Admin.
+      const holdsAdmin = item.roleInfo?.is_system && item.is_active;
+      const losesAdmin =
+        (role_id !== undefined && role_id !== item.role_id) || is_active === false;
+      if (holdsAdmin && losesAdmin && (await otherActiveAdmins(item.id)) === 0) {
+        return sendConflictError(res, "User", "At least one active Admin is required");
+      }
+
       const updates = {
         ...(username !== undefined && { username }),
         ...(email !== undefined && { email }),
-        ...(role !== undefined && { role }),
+        ...(role_id !== undefined && { role_id }),
         ...(is_active !== undefined && { is_active }),
       };
 
@@ -144,6 +180,7 @@ class UserController {
       }
 
       await item.update(updates);
+      await invalidateUser(redisOf(req), item.id);
 
       const { password: _password, ...safeUser } = item.toJSON();
 
@@ -166,12 +203,17 @@ class UserController {
         return sendConflictError(res, "User", "You cannot delete your own account");
       }
 
-      const item = await dataModel.findByPk(id);
+      const item = await dataModel.findByPk(id, { include: roleInclude });
       if (!item) {
         return sendNotFoundError(res, "User");
       }
 
+      if (item.roleInfo?.is_system && item.is_active && (await otherActiveAdmins(item.id)) === 0) {
+        return sendConflictError(res, "User", "At least one active Admin is required");
+      }
+
       await item.destroy();
+      await invalidateUser(redisOf(req), item.id);
 
       sendSuccessResponse(res, null, "User deleted successfully");
     } catch (error) {

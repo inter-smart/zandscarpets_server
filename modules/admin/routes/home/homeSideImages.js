@@ -11,7 +11,7 @@ const uploadFields = [
 ];
 const upload = createUploadMiddleware("home-side-images", uploadFields);
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "website_pages" }));
 router.get("/", Controller.list);
 router.get("/:id", Controller.getById);
 router.post("/", upload, Controller.create);

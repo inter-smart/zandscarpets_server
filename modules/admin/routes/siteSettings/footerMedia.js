@@ -11,7 +11,7 @@ const uploadFields = [{ name: "media_path" }];
 
 const upload = createUploadMiddleware("footer-media", uploadFields);
 
-router.use(authMiddleware(["admin", 'user']));
+router.use(authMiddleware({ module: "site_elements" }));
 router.get("/", Controller.list);
 router.get("/:id", Controller.getById);
 router.post("/", upload, Controller.create);

@@ -11,7 +11,7 @@ const uploadFields = [{ name: "media_path" }, { name: "thumbnail" }];
 
 const upload = createUploadMiddleware("products-media", uploadFields);
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "catalog" }));
 router.get("/", Controller.list);
 router.get("/:id", Controller.getById);
 router.post("/", upload, Controller.create);

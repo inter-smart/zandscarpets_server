@@ -10,7 +10,7 @@ const upload = createUploadMiddleware("seasonal-offer", [
   { name: "badge_image" },
 ]);
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "site_elements" }));
 router.get("/", Controller.get);
 router.put("/:id", upload, Controller.update);
 

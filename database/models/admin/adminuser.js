@@ -27,6 +27,13 @@ module.exports = (sequelize) => {
         type: DataTypes.ENUM('admin', 'user'),
         defaultValue: 'user',
       },
+      // Legacy enum, kept for rollback only. Access is decided by role_id (admin_roles).
+      role_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: { model: 'admin_roles', key: 'id' },
+        onDelete: 'RESTRICT',
+      },
       is_active: {
         type: DataTypes.BOOLEAN,
         defaultValue: true,
@@ -38,6 +45,10 @@ module.exports = (sequelize) => {
 paranoid: true,
     }
   );
+
+  AdminUser.associate = (models) => {
+    AdminUser.belongsTo(models.AdminRole, { foreignKey: 'role_id', as: 'roleInfo' });
+  };
 
   return AdminUser;
 };

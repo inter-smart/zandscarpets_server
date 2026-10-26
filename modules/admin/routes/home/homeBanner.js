@@ -10,7 +10,7 @@ const upload = createUploadMiddleware("home-banner", uploadFields, {
   maxFileSizeBytes: 10 * 1024 * 1024, // room for video banners
 });
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "website_pages" }));
 router.get("/", Controller.list);
 router.get("/:id", Controller.getById);
 router.post("/", upload, Controller.create);

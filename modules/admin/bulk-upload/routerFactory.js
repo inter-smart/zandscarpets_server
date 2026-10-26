@@ -15,7 +15,7 @@ const upload = multer({
 
 function buildBulkUploadRouter(controller) {
   const router = express.Router();
-  router.use(authMiddleware(["admin", "user"]));
+  router.use(authMiddleware({ module: "bulk_upload" }));
   router.get("/template", controller.template);
   router.post("/validate", upload.single("file"), controller.validate);
   router.post("/commit", controller.commit);

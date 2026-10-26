@@ -9,7 +9,7 @@ const router = express.Router();
 
 const upload = createUploadMiddleware("product-variants", [{ name: "media_path" }]);
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "catalog" }));
 
 // Fixed paths must be declared before "/:id".
 router.post("/generate", Controller.generate);

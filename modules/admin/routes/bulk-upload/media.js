@@ -4,7 +4,7 @@ const Controller = require("../../http/controllers/bulkUpload/mediaController");
 
 const router = express.Router();
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "bulk_upload" }));
 router.get("/", Controller.list);
 router.post("/", Controller.upload);
 

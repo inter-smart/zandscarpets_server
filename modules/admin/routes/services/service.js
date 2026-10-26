@@ -3,7 +3,7 @@ const Controller = require("../../http/controllers/services/serviceController");
 const authMiddleware = require("../../http/middleware/authMiddleware");
 
 const router = express.Router();
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "services" }));
 router.get("/active", Controller.getActive);
 router.get("/", Controller.list);
 router.get("/:id", Controller.getById);

@@ -3,7 +3,7 @@ const Controller = require("../../http/controllers/services/serviceCmsController
 const authMiddleware = require("../../http/middleware/authMiddleware");
 
 const router = express.Router();
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "website_pages" }));
 router.get("/", Controller.get);
 router.put("/:id", Controller.update);
 

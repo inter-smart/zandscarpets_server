@@ -20,10 +20,7 @@ const passwordRule = () =>
     .isLength({ min: 8, max: 128 })
     .withMessage("Password must be between 8 and 128 characters");
 const roleRule = () =>
-  body("role")
-    .optional()
-    .isIn(["admin", "user"])
-    .withMessage("Role must be either admin or user");
+  body("role_id").optional().isInt({ min: 1 }).withMessage("role_id must be a valid role id");
 
 const isActiveRule = () =>
   body("is_active")

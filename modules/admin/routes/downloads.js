@@ -11,7 +11,7 @@ const upload = createUploadMiddleware("downloads", [{ name: "file_path" }], {
   maxFileSizeBytes: 10 * 1024 * 1024,
 });
 
-router.use(authMiddleware(["admin", "user"]));
+router.use(authMiddleware({ module: "downloads" }));
 router.get("/", Controller.list);
 router.get("/:id", Controller.getById);
 router.post("/", upload, Controller.create);
