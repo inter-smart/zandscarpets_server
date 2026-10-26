@@ -8,6 +8,7 @@ const defineSiteSettings = require("./siteSettings/siteSettings");
 const defineSocialMedia = require("./siteSettings/socialMedia");
 const defineFloatingIcon = require("./siteSettings/floatingIcon");
 const defineMetaData = require("./siteSettings/metaData");
+const definePageSectionSetting = require("./siteSettings/pageSectionSetting");
 const defineFooterMedia = require("./siteSettings/footerMedia");
 const definePage = require("./masters/page");
 const defineBanners = require("./siteSettings/banners");
@@ -88,6 +89,7 @@ const models = {
 
   // SITE SETTINGS
   MetaData: defineMetaData(sequelize),
+  PageSectionSetting: definePageSectionSetting(sequelize),
   Page: definePage(sequelize),
   Banners: defineBanners(sequelize),
   AdsBanner: defineAdsBanner(sequelize),

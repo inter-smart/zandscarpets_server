@@ -3,7 +3,7 @@ const { link } = require("../../../routes/home");
 const { singleMediaWithType, singleMediaWithoutType } = require("../../traits/mediaButtonHelper");
 const MetaTagService = require("../metaTag/MetaTagService");
 const CommonSections = require("../common/CommonSections");
-const { withVisibility, inlineRichText, blockRichText } = require("../../traits/sectionHelpers");
+const { withVisibility, getDisabledSections, applyEnabled, inlineRichText, blockRichText } = require("../../traits/sectionHelpers");
 
 const orderedActive = { where: { is_active: true }, order: [["sort_order", "ASC"]] };
 const homeBannerAttributes = [
@@ -100,6 +100,7 @@ class HomeService {
       howItWorks = [],
       residentialProducts = [],
       otherMeta,
+      disabled,
     ] = await Promise.all([
       models.HomeBanner.findAll({
         ...orderedActive,
@@ -162,6 +163,7 @@ class HomeService {
         order: [["sort_order", "ASC"]],
       }),
       MetaTagService.getOtherMetaForPage("home"),
+      getDisabledSections("home"),
     ]);
 
     const sections = {
@@ -186,7 +188,10 @@ class HomeService {
     return {
       other_meta: otherMeta.other_meta,
       other_meta_ar: otherMeta.other_meta_ar,
-      ...Object.fromEntries(Object.entries(sections).map(([key, section]) => [key, withVisibility(section)])),
+      ...applyEnabled(
+        Object.fromEntries(Object.entries(sections).map(([key, section]) => [key, withVisibility(section)])),
+        disabled,
+      ),
     };
   }
 

@@ -2,7 +2,7 @@ const { models } = require("../../../../../database/models");
 const AboutSectionBuilder = require("./AboutSectionBuilder");
 const CommonSections = require("../common/CommonSections");
 const MetaTagService = require("../metaTag/MetaTagService");
-const { withVisibility } = require("../../traits/sectionHelpers");
+const { withVisibility, getDisabledSections, applyEnabled } = require("../../traits/sectionHelpers");
 
 class AboutService {
   // Same convention as the home API: both languages in one response (no `?lang=`),
@@ -28,6 +28,7 @@ class AboutService {
       industries = [],
       common,
       otherMeta,
+      disabled,
     ] = await Promise.all([
       models.Banners.findAll({
         include: [
@@ -52,6 +53,7 @@ class AboutService {
       models.AboutIndustries.findAll(activeQuery),
       CommonSections.fetch(),
       MetaTagService.getOtherMetaForPage("about"),
+      getDisabledSections("about"),
     ]);
 
     const sections = {
@@ -69,7 +71,10 @@ class AboutService {
     const data = {
       other_meta: otherMeta.other_meta,
       other_meta_ar: otherMeta.other_meta_ar,
-      ...Object.fromEntries(Object.entries(sections).map(([key, section]) => [key, withVisibility(section)])),
+      ...applyEnabled(
+        Object.fromEntries(Object.entries(sections).map(([key, section]) => [key, withVisibility(section)])),
+        disabled,
+      ),
     };
 
     return { data };

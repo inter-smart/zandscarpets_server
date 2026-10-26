@@ -1,7 +1,7 @@
 const { models } = require("../../../../../database/models");
 const ServicesSectionBuilder = require("./ServicesSectionBuilder");
 const MetaTagService = require("../metaTag/MetaTagService");
-const { withVisibility } = require("../../traits/sectionHelpers");
+const { withVisibility, getDisabledSections, applyEnabled } = require("../../traits/sectionHelpers");
 
 class ServicesService {
   // Same convention as the home / about APIs: both languages in one response (no `?lang=`),
@@ -18,7 +18,7 @@ class ServicesService {
       order: [["sort_order", "ASC"]],
     };
 
-    const [banner = [], industries = [], services = [], processSteps = [], otherMeta] = await Promise.all([
+    const [banner = [], industries = [], services = [], processSteps = [], otherMeta, disabled] = await Promise.all([
       models.Banners.findAll({
         include: [
           {
@@ -34,6 +34,7 @@ class ServicesService {
       models.Services.findAll(activeQuery),
       models.ProcessSteps.findAll(activeQuery),
       MetaTagService.getOtherMetaForPage("services"),
+      getDisabledSections("services"),
     ]);
 
     const sections = {
@@ -46,7 +47,10 @@ class ServicesService {
     const data = {
       other_meta: otherMeta.other_meta,
       other_meta_ar: otherMeta.other_meta_ar,
-      ...Object.fromEntries(Object.entries(sections).map(([key, section]) => [key, withVisibility(section)])),
+      ...applyEnabled(
+        Object.fromEntries(Object.entries(sections).map(([key, section]) => [key, withVisibility(section)])),
+        disabled,
+      ),
     };
 
     return { data };

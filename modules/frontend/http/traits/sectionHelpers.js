@@ -14,6 +14,28 @@ const withVisibility = (section) => {
   return { ...section, is_visible: isVisible };
 };
 
+// Section keys an admin has switched off for a page (no row = enabled).
+const getDisabledSections = async (pageSlug) => {
+  // required lazily: models/index.js pulls in the whole model graph
+  const { models } = require("../../../../database/models");
+  const rows = await models.PageSectionSetting.findAll({
+    where: { page_slug: pageSlug, is_enabled: false },
+    attributes: ["section_key"],
+  });
+  return new Set(rows.map((r) => r.section_key));
+};
+
+// Flags every section in `sections` that the admin disabled with `is_enabled: false`, which also
+// forces `is_visible: false`. Unlike `is_visible` (no content, show fallback), `is_enabled: false`
+// means the storefront should not render the section at all.
+const applyEnabled = (sections, disabled) =>
+  Object.fromEntries(
+    Object.entries(sections).map(([key, section]) => [
+      key,
+      disabled.has(key) ? { ...section, is_enabled: false, is_visible: false } : section,
+    ]),
+  );
+
 // Heading/description authored in a rich text editor ("<p>Line one<br>Line two</p>").
 // They render inside <h1>/<h2>, so paragraphs become line breaks and only inline formatting
 // (bold/italic/underline/line break/colour) is kept.
@@ -66,4 +88,4 @@ const articleRichText = (html) =>
     .replace(/<p>\s*<\/p>/gi, "")
     .trim();
 
-module.exports = { stripHtml, withVisibility, inlineRichText, blockRichText, articleRichText };
+module.exports = { stripHtml, withVisibility, getDisabledSections, applyEnabled, inlineRichText, blockRichText, articleRichText };

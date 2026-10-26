@@ -1,7 +1,7 @@
 const { QueryTypes } = require("sequelize");
 const { models, sequelize } = require("../../../../../database/models");
 const { singleMediaWithoutType } = require("../../traits/mediaButtonHelper");
-const { withVisibility, stripHtml, articleRichText } = require("../../traits/sectionHelpers");
+const { withVisibility, getDisabledSections, applyEnabled, stripHtml, articleRichText } = require("../../traits/sectionHelpers");
 const { HttpError } = require("../../traits/HttpError");
 const { toPublicFields } = require("../../traits/detailFieldsPublic");
 const { resolveVariantDetails, resolveProductDetails } = require("../../../../../services/detailsResolverService");
@@ -158,7 +158,7 @@ class ProductsService {
   // extra scripts and the general FAQs (the ones that don't belong to a product; the heading
   // is the home page's FAQ title).
   static async page() {
-    const [banner = [], otherMeta, faqs = [], homeCms] = await Promise.all([
+    const [banner = [], otherMeta, faqs = [], homeCms, disabled] = await Promise.all([
       models.Banners.findAll({
         include: [
           {
@@ -177,6 +177,7 @@ class ProductsService {
         order: [["sort_order", "ASC"], ["id", "ASC"]],
       }),
       models.HomeCms.findOne({ attributes: ["faq_title", "faq_title_ar"] }),
+      getDisabledSections("products"),
     ]);
 
     const bannerSection = {
@@ -203,8 +204,10 @@ class ProductsService {
       data: {
         other_meta: otherMeta.other_meta,
         other_meta_ar: otherMeta.other_meta_ar,
-        banner_section: withVisibility(bannerSection),
-        faqs_section: withVisibility(faqsSection),
+        ...applyEnabled(
+          { banner_section: withVisibility(bannerSection), faqs_section: withVisibility(faqsSection) },
+          disabled,
+        ),
       },
     };
   }

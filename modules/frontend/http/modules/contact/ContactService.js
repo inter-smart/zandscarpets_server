@@ -1,7 +1,7 @@
 const { models } = require("../../../../../database/models");
 const ContactSectionBuilder = require("./ContactSectionBuilder");
 const MetaTagService = require("../metaTag/MetaTagService");
-const { withVisibility } = require("../../traits/sectionHelpers");
+const { withVisibility, getDisabledSections, applyEnabled } = require("../../traits/sectionHelpers");
 
 class ContactService {
   // Same convention as the home / about APIs: both languages in one response (no `?lang=`),
@@ -11,7 +11,7 @@ class ContactService {
   static async index() {
     const cmsData = (await models.ContactCms.findOne({})) ?? {};
 
-    const [banner = [], socialMedia = [], otherMeta] = await Promise.all([
+    const [banner = [], socialMedia = [], otherMeta, disabled] = await Promise.all([
       models.Banners.findAll({
         include: [
           {
@@ -28,15 +28,16 @@ class ContactService {
         order: [["sort_order", "ASC"]],
       }),
       MetaTagService.getOtherMetaForPage("contact"),
+      getDisabledSections("contact"),
     ]);
 
-    const sections = {
+    const sections = applyEnabled({
       banner_section: withVisibility(ContactSectionBuilder.buildBannerSection(banner)),
       contact_detail_section: ContactSectionBuilder.buildContactDetailSection(cmsData),
       social_section: withVisibility(ContactSectionBuilder.buildSocialSection(cmsData, socialMedia)),
       form_section: withVisibility(ContactSectionBuilder.buildFormSection(cmsData)),
       map_section: ContactSectionBuilder.buildMapSection(cmsData),
-    };
+    }, disabled);
 
     const data = {
       other_meta: otherMeta.other_meta,
