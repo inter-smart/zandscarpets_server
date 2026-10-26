@@ -7,7 +7,6 @@ const { transporter, options: transportOptions } = createMailTransport();
 
 const { renderEmailLayout } = require("./mailTemplates/layout");
 const { escapeHtml, oneLine, formatDateTime } = require("./mailTemplates/utils");
-const { formatReferenceId } = require("./mailTemplates/referenceId");
 
 // Quote line items -> the layout's Product / Variant / Qty table.
 const quoteItems = (items) =>
@@ -110,14 +109,13 @@ class MailerService {
    */
   static async sendContactEnquiryAdminNotification(enquiry) {
     const adminEmail = await MailerService.getFromEmail();
-    const referenceId = formatReferenceId("contact", enquiry.id);
     return MailerService.sendEmail({
       toEmail: adminEmail,
-      subject: oneLine(`New Contact Enquiry (${referenceId}) from ${enquiry.name}`),
+      subject: oneLine(`New Contact Enquiry from ${enquiry.name}`),
       htmlContent: renderEmailLayout({
         title: "New Contact Enquiry",
         preheader: `New contact enquiry from ${enquiry.name}`,
-        introHtml: `A new enquiry has been submitted through the website contact form. Reference <strong>${escapeHtml(referenceId)}</strong>.`,
+        introHtml: `A new enquiry has been submitted through the website contact form.`,
         detailsTitle: "Enquiry Details",
         details: [
           { label: "Name", value: enquiry.name },
@@ -140,15 +138,14 @@ class MailerService {
    * Sends a "we've received your enquiry" confirmation to the submitter.
    */
   static async sendContactEnquiryConfirmation(enquiry) {
-    const referenceId = formatReferenceId("contact", enquiry.id);
     return MailerService.sendEmail({
       toEmail: enquiry.email,
       toName: enquiry.name,
-      subject: `Enquiry Received (${referenceId})`,
+      subject: `Enquiry Received`,
       htmlContent: renderEmailLayout({
         title: "Enquiry Received",
         preheader: "Thank you for contacting Z&S Carpets",
-        greeting: { name: enquiry.name, referenceId },
+        greeting: { name: enquiry.name },
         introHtml: "Thank you for reaching out to us. Our team will review your requirements and get back to you within 24 hours.",
         details: [
           { label: "Mobile", value: enquiry.phone },
@@ -166,14 +163,13 @@ class MailerService {
    */
   static async sendSampleRequestAdminNotification(request) {
     const adminEmail = await MailerService.getFromEmail();
-    const referenceId = formatReferenceId("sample", request.id);
     return MailerService.sendEmail({
       toEmail: adminEmail,
-      subject: oneLine(`New Sample Request (${referenceId}) from ${request.name}`),
+      subject: oneLine(`New Sample Request from ${request.name}`),
       htmlContent: renderEmailLayout({
         title: "New Sample Request",
         preheader: `Sample request for ${request.product_title} from ${request.name}`,
-        introHtml: `A new sample request has been submitted for <strong>${escapeHtml(request.product_title)}</strong>. Reference <strong>${escapeHtml(referenceId)}</strong>.`,
+        introHtml: `A new sample request has been submitted for <strong>${escapeHtml(request.product_title)}</strong>.`,
         detailsTitle: "Request Details",
         details: [
           { label: "Category", value: request.category_title },
@@ -194,15 +190,14 @@ class MailerService {
    * Sends a "we've received your sample request" confirmation to the requester.
    */
   static async sendSampleRequestConfirmation(request) {
-    const referenceId = formatReferenceId("sample", request.id);
     return MailerService.sendEmail({
       toEmail: request.email,
       toName: request.name,
-      subject: `Sample Request Received (${referenceId})`,
+      subject: `Sample Request Received`,
       htmlContent: renderEmailLayout({
         title: "Sample Request Received",
         preheader: `We've received your sample request for ${request.product_title}`,
-        greeting: { name: request.name, referenceId },
+        greeting: { name: request.name },
         introHtml: `Thank you for requesting a sample of our <strong>${escapeHtml(request.product_title)}</strong>. Our team will get in touch within 24 hours to arrange it.`,
         detailsTitle: "Your Request Details",
         details: [
@@ -221,15 +216,14 @@ class MailerService {
    */
   static async sendDownloadRequestAdminNotification(request) {
     const adminEmail = await MailerService.getFromEmail();
-    const referenceId = formatReferenceId("download", request.id);
     const file = request.download_title || request.product_title;
     return MailerService.sendEmail({
       toEmail: adminEmail,
-      subject: oneLine(`New Download Request (${referenceId}) from ${request.name}`),
+      subject: oneLine(`New Download Request from ${request.name}`),
       htmlContent: renderEmailLayout({
         title: "New Download Request",
         preheader: `Download request for ${file} from ${request.name}`,
-        introHtml: `A new download request has been submitted for <strong>${escapeHtml(file)}</strong>. Please send the file to the requester. Reference <strong>${escapeHtml(referenceId)}</strong>.`,
+        introHtml: `A new download request has been submitted for <strong>${escapeHtml(file)}</strong>. Please send the file to the requester.`,
         detailsTitle: "Request Details",
         details: [
           { label: "File", value: file },
@@ -250,16 +244,15 @@ class MailerService {
    * Sends a "we've received your download request" confirmation to the requester.
    */
   static async sendDownloadRequestConfirmation(request) {
-    const referenceId = formatReferenceId("download", request.id);
     const file = request.download_title || request.product_title;
     return MailerService.sendEmail({
       toEmail: request.email,
       toName: request.name,
-      subject: `Download Request Received (${referenceId})`,
+      subject: `Download Request Received`,
       htmlContent: renderEmailLayout({
         title: "Download Request Received",
         preheader: `We've received your request for ${file}`,
-        greeting: { name: request.name, referenceId },
+        greeting: { name: request.name },
         introHtml: `Thank you for your interest${file ? ` in <strong>${escapeHtml(file)}</strong>` : ""}. Our team will send the file to your email shortly.`,
         detailsTitle: "Your Request Details",
         details: [
