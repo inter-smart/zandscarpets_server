@@ -48,18 +48,23 @@ const extractFilePathFromUrl = (url, subfolder) => {
 // product data sheet upload, kept separate from the main product image
 // upload so the main/list images stay image-only).
 // options.iconOnly restricts the instance to SVG files (social icons).
+// options.imageOnly restricts this instance to jpeg/png/webp images (no svg/video).
 // options.maxFileSizeBytes overrides the default 5MB ceiling for this
 // instance only (e.g. detail-media raises it to fit a 10MB video, while
 // every other caller keeps the original 5MB default).
 const createUploadMiddleware = (subfolder, fields, options = {}) => {
-  const allowedTypes = options.onlyPdf
+  const allowedTypes = options.imageOnly
+    ? /jpeg|jpg|png|webp/
+    : options.onlyPdf
     ? /pdf/
     : options.iconOnly
     ? /svg/
     : options.allowPdf
     ? /jpeg|jpg|png|svg|webp|mp4|mov|avi|mkv|webm|pdf/
     : /jpeg|jpg|png|svg|webp|mp4|mov|avi|mkv|webm/;
-  const typeError = options.onlyPdf
+  const typeError = options.imageOnly
+    ? "Only image (jpeg, jpg, png, webp) files are allowed"
+    : options.onlyPdf
     ? "Only PDF files are allowed"
     : options.iconOnly
     ? "Only SVG icons are allowed"

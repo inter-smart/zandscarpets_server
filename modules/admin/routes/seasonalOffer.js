@@ -5,10 +5,11 @@ const { createUploadMiddleware } = require("../http/middleware/multerMiddleware"
 
 const router = express.Router();
 
-const upload = createUploadMiddleware("seasonal-offer", [
-  { name: "media_path" },
-  { name: "badge_image" },
-]);
+const upload = createUploadMiddleware(
+  "seasonal-offer",
+  [{ name: "media_path" }, { name: "badge_image" }],
+  { imageOnly: true, maxFileSizeBytes: 2 * 1024 * 1024 },
+);
 
 router.use(authMiddleware({ module: "site_elements" }));
 router.get("/", Controller.get);
