@@ -21,6 +21,8 @@ module.exports = (sequelize) => {
         allowNull: true,
       },
       media_path: { type: DataTypes.STRING, allowNull: false },
+      // optional portrait-ish image used below the `sm` breakpoint; falls back to media_path when empty
+      mobile_media_path: { type: DataTypes.STRING, allowNull: true },
       // optional small badge graphic (e.g. "UP TO 40% OFF"), rendered in its own fixed circular frame
       badge_image: { type: DataTypes.STRING, allowNull: true },
       button_text: { type: DataTypes.STRING, allowNull: false },

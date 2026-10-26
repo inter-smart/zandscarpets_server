@@ -7,7 +7,7 @@ const router = express.Router();
 
 const upload = createUploadMiddleware(
   "seasonal-offer",
-  [{ name: "media_path" }, { name: "badge_image" }],
+  [{ name: "media_path" }, { name: "mobile_media_path" }, { name: "badge_image" }],
   { imageOnly: true, maxFileSizeBytes: 2 * 1024 * 1024 },
 );
 

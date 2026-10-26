@@ -15,7 +15,9 @@ const {
 } = require("../request/seasonalOfferRequest");
 const { validationResult } = require("express-validator");
 
-const fileFields = ["media_path", "badge_image"];
+const fileFields = ["media_path", "mobile_media_path", "badge_image"];
+// optional images: omitted from the form submit means the admin removed them
+const optionalFileFields = ["mobile_media_path", "badge_image"];
 
 class SeasonalOfferController {
   static async get(req, res) {
@@ -55,18 +57,20 @@ class SeasonalOfferController {
           ]);
         }
         await handleFileUploadUpdate(req, seasonalOffer, fileFields);
-        // Badge is optional: if no new file and no existing path was sent
-        // back, the admin removed it — clear it (and its file) instead of
-        // keeping the old value.
-        if (!req.files?.badge_image?.[0] && !req.body.badge_image) {
-          if (seasonalOffer.badge_image) {
-            try {
-              await deleteOldFile(seasonalOffer.badge_image);
-            } catch (error) {
-              console.error("Failed to delete old badge image:", error);
+        // Badge and mobile image are optional: if no new file and no existing
+        // path was sent back, the admin removed it — clear it (and its file)
+        // instead of keeping the old value.
+        for (const field of optionalFileFields) {
+          if (!req.files?.[field]?.[0] && !req.body[field]) {
+            if (seasonalOffer[field]) {
+              try {
+                await deleteOldFile(seasonalOffer[field]);
+              } catch (error) {
+                console.error(`Failed to delete old ${field}:`, error);
+              }
             }
+            req.body[field] = null;
           }
-          req.body.badge_image = null;
         }
         await seasonalOffer.update(req.body);
       }
