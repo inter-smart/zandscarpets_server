@@ -11,7 +11,8 @@ module.exports = (sequelize) =>
       title_ar: { type: DataTypes.STRING, allowNull: false },
       description: { type: DataTypes.TEXT, allowNull: true },
       description_ar: { type: DataTypes.TEXT, allowNull: true },
-      file_path: { type: DataTypes.TEXT, allowNull: false },
+      // optional: the file is sent to requesters by hand, so a download can exist without one
+      file_path: { type: DataTypes.TEXT, allowNull: true },
       file_original_filename: { type: DataTypes.STRING, allowNull: true },
       file_size_bytes: { type: DataTypes.INTEGER, allowNull: true },
       sort_order: { type: DataTypes.SMALLINT, defaultValue: 0 },

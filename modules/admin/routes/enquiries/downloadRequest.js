@@ -7,6 +7,7 @@ const router = express.Router();
 router.use(authMiddleware({ module: "leads" }));
 router.get("/", Controller.list);
 router.get("/:id", Controller.getById);
+router.patch("/:id/status", Controller.updateStatus);
 router.delete("/:id", Controller.destroy);
 
 module.exports = router;

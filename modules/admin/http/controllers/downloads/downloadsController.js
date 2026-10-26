@@ -49,10 +49,6 @@ class DownloadsController {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return sendValidationError(res, errors.array());
 
-    if (!req.body.file_path) {
-      return sendValidationError(res, [{ path: "file_path", msg: "File is required" }]);
-    }
-
     try {
       handleFileUploadStore(req, fileFields);
 

@@ -19,6 +19,12 @@ module.exports = (sequelize) =>
       // datasheet button rather than the Downloads master list (see DownloadRequestService).
       product_id: { type: DataTypes.INTEGER, allowNull: true },
       product_title: { type: DataTypes.STRING, allowNull: true },
+      // Admin follow-up tracking, updated from the admin panel only.
+      status: {
+        type: DataTypes.ENUM("new", "shared"),
+        allowNull: false,
+        defaultValue: "new",
+      },
       deleted_at: { type: DataTypes.DATE },
     },
     {

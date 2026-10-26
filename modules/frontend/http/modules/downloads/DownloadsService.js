@@ -9,7 +9,8 @@ const { BASE_URL } = require("../../../../../constants");
 const absoluteUrl = (relativePath) => (relativePath ? `${BASE_URL}/${relativePath}` : null);
 
 const DEFAULT_LIMIT = 12;
-const MAX_LIMIT = 48;
+// the storefront can ask for the first N pages at once (a `?page=N` link)
+const MAX_LIMIT = 120;
 
 const toPositiveInt = (value, fallback) => {
   const parsed = parseInt(value, 10);
