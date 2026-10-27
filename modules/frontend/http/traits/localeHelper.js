@@ -1,5 +1,5 @@
 // Picks the language-appropriate value; falls back to the base value when no
-// Arabic variant exists (e.g. WorkPlan has no `_ar` columns at all).
+// Arabic variant exists (e.g. a table with no `_ar` columns at all).
 function t(lang, base, ar) {
   return lang === "ar" ? (ar ?? base ?? "") : (base ?? "");
 }

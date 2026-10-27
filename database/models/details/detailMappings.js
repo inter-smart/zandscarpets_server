@@ -94,7 +94,7 @@ module.exports = (sequelize) => {
     // productsController.js / variantsController.js `destroy`, which
     // hard-deletes this table's rows for the product/variant being
     // (soft-)deleted before committing — mirroring how those controllers
-    // already hard-delete VariantAttributeValues/Faqs/ProductMedia.
+    // already hard-delete VariantAttributeValues/Faqs.
     DetailMappings.belongsTo(models.Products, {
       foreignKey: "product_id",
       as: "product",

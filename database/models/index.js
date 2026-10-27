@@ -16,9 +16,6 @@ const defineAdsBanner = require("./masters/AdsBanner");
 const defineSeasonalOffer = require("./masters/seasonalOffer");
 const defineFaqs = require("./masters/faqs");
 const defineIndustry = require("./masters/industry");
-const defineOurFeatures = require("./masters/ourFeatures");
-const defineMaterials = require("./masters/materials");
-const defineWorkPlan = require("./masters/workPlan");
 const defineHomeCms = require("./home/homeCms");
 const defineHomeBanner = require("./home/homeBanner");
 const defineHomeBrands = require("./home/homeBrands");
@@ -31,7 +28,6 @@ const defineAboutIndustries = require("./about/aboutIndustries");
 const defineMessages = require("./about/messages");
 const defineContactCms = require("./contact/contactCms");
 const defineCategoryCms = require("./products/categoryCms");
-const defineConnections = require("./contact/connections");
 // blogs
 const defineBlogs = require("./blogs/blogs");
 const defineBlogImages = require("./blogs/blogImages");
@@ -55,7 +51,6 @@ const defineProductHighlights = require("./products/productHightlights");
 const defineProducts = require("./products/products");
 const defineProductBanners = require("./products/productBanners");
 const defineProductLabels = require("./products/productLabels");
-const defineProductMedia = require("./products/productMedia");
 const defineAttributes = require("./products/attributes");
 const defineAttributeValues = require("./products/attributeValues");
 const defineProductAttributes = require("./products/productAttributes");
@@ -99,9 +94,6 @@ const models = {
   Industry: defineIndustry(sequelize),
 
   // HOME
-  OurFeatures: defineOurFeatures(sequelize),
-  Materials: defineMaterials(sequelize),
-  WorkPlan: defineWorkPlan(sequelize),
   HomeCms: defineHomeCms(sequelize),
   HomeBanner: defineHomeBanner(sequelize),
   HomeBrands: defineHomeBrands(sequelize),
@@ -118,7 +110,6 @@ const models = {
   // CONTACT
   ContactCms: defineContactCms(sequelize),
   CategoryCms: defineCategoryCms(sequelize),
-  Connections: defineConnections(sequelize),
   ContactEnquiry: defineContactEnquiry(sequelize),
   SampleRequest: defineSampleRequest(sequelize),
   DownloadRequest: defineDownloadRequest(sequelize),
@@ -146,7 +137,6 @@ const models = {
   Products: defineProducts(sequelize),
   ProductBanners: defineProductBanners(sequelize),
   ProductLabels: defineProductLabels(sequelize),
-  ProductMedia: defineProductMedia(sequelize),
 
   // ATTRIBUTES
   Attributes: defineAttributes(sequelize),

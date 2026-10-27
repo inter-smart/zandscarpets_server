@@ -15,12 +15,7 @@ const cmsResources = {
   "ads-banner": { model: "AdsBanner" },
   faqs: { model: "Faqs" },
   industry: { model: "Industry" },
-  "our-features": { model: "OurFeatures" },
-  materials: { model: "Materials" },
-  "work-plan": {
-    model: "WorkPlan",
-  },
-  "home-banner": { model: "HomeBanner" },
+      "home-banner": { model: "HomeBanner" },
   "common-milestones": { model: "CommonMilestones" },
   "common-features": { model: "CommonFeatures" },
   "common-how-it-works": { model: "CommonHowItWorks" },
@@ -37,8 +32,7 @@ const cmsResources = {
     model: "AboutIndustries",
   },
   messages: { model: "Messages" },
-  connections: { model: "Connections" },
-  projects: { model: "Projects", homeField: "is_show_in_home" },
+    projects: { model: "Projects", homeField: "is_show_in_home" },
   services: { model: "Services" },
   "process-steps": { model: "ProcessSteps" },
   "product-categories": {
@@ -57,9 +51,6 @@ const cmsResources = {
   },
   "attribute-values": {
     model: "AttributeValues",
-  },
-  "product-media": {
-    model: "ProductMedia",
   },
   // product responses embed variants, so variant changes bust products too
   "product-variants": {

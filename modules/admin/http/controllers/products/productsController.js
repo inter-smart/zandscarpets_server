@@ -493,10 +493,6 @@ class ProductController {
         where: { product_id: id },
         transaction: t,
       });
-      await models.ProductMedia.destroy({
-        where: { product_id: id },
-        transaction: t,
-      });
       await item.destroy({ transaction: t });
 
       await t.commit();
