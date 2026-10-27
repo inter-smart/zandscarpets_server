@@ -36,12 +36,11 @@ if (!process.env.SITE_URL) {
 }
 export const SITE_URL = process.env.SITE_URL.replace(/\/+$/, "");
 
-// TESTING VALUES — short timings for QA. Production values: OTP 5 min, resend 60 s, lockout 5 min, reset token 10 min.
-export const OTP_TTL_SECONDS = 2 * 60; // OTP + attempts counter both expire together
+export const OTP_TTL_SECONDS = 5 * 60; // OTP + attempts counter both expire together
 export const OTP_MAX_ATTEMPTS = 3;
-export const OTP_RESEND_COOLDOWN_SECONDS = 10;
-export const OTP_LOCKOUT_COOLDOWN_SECONDS = 30; // cooldown after hitting max attempts
-export const RESET_TOKEN_TTL_SECONDS = 5 * 60;
+export const OTP_RESEND_COOLDOWN_SECONDS = 60;
+export const OTP_LOCKOUT_COOLDOWN_SECONDS = 5 * 60; // cooldown after hitting max attempts
+export const RESET_TOKEN_TTL_SECONDS = 10 * 60;
 
 export const ACCESS_COOKIE_NAME = "access_token";
 export const REFRESH_COOKIE_NAME = "refresh_token";
