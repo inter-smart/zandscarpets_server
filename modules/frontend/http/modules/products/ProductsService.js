@@ -691,3 +691,6 @@ class ProductsService {
 }
 
 module.exports = ProductsService;
+
+// shared with the search module so it applies the same category visibility rule
+module.exports.ANCESTORS_ACTIVE = ANCESTORS_ACTIVE;
