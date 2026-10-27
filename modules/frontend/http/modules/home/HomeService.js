@@ -172,22 +172,22 @@ class HomeService {
     ]);
 
     const sections = {
-      // banner_section: this.buildBannerSection(homeBanners),
-      // milestones_section: this.buildMilestonesSection(milestones),
-      // discover_section: this.buildCategoriesSection(cmsData, homeCategories),
-      // industries_section: this.buildIndustriesSection(cmsData, industries),
-      // testimonials_section: this.buildTestimonialsSection(testimonials, cmsData),
-      // brands_section: this.buildBrandsSection(brands, cmsData),
-      // faqs_section: this.buildFaqsSection(faqs, cmsData),
-      // side_images_section: this.buildSideImagesSection(sideImages),
+      banner_section: this.buildBannerSection(homeBanners),
+      milestones_section: this.buildMilestonesSection(milestones),
+      discover_section: this.buildCategoriesSection(cmsData, homeCategories),
+      industries_section: this.buildIndustriesSection(cmsData, industries),
+      testimonials_section: this.buildTestimonialsSection(testimonials, cmsData),
+      brands_section: this.buildBrandsSection(brands, cmsData),
+      faqs_section: this.buildFaqsSection(faqs, cmsData),
+      side_images_section: this.buildSideImagesSection(sideImages),
       space_section: { title: cmsData?.space_section_title ?? "", title_ar: cmsData?.space_section_title_ar ?? "" },
-      // premium_section: this.buildPremiumSection(cmsData),
-      // works_section: this.buildWorksSection(cmsData),
-      // features_section: this.buildFeaturesSection(features, commonContent),
-      // side_section: this.buildSideSection(commonContent),
-      // how_it_works_section: this.buildHowItWorksSection(howItWorks, commonContent),
-      // residential_section: this.buildResidentialSection(residentialProducts, cmsData),
-      // cta_section: this.buildCtaSection(cmsData),
+      premium_section: this.buildPremiumSection(cmsData),
+      works_section: this.buildWorksSection(cmsData),
+      features_section: this.buildFeaturesSection(features, commonContent),
+      side_section: this.buildSideSection(commonContent),
+      how_it_works_section: this.buildHowItWorksSection(howItWorks, commonContent),
+      residential_section: this.buildResidentialSection(residentialProducts, cmsData),
+      cta_section: this.buildCtaSection(cmsData),
     };
 
     return {

@@ -160,6 +160,12 @@ module.exports = (sequelize) => {
       foreignKey: "product_id",
       as: "metaData",
     });
+
+    // The product's own detail-page banner (at most one).
+    Products.hasOne(models.ProductBanners, {
+      foreignKey: "product_id",
+      as: "banner",
+    });
   };
   return Products;
 };

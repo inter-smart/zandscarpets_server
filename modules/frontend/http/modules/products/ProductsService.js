@@ -487,7 +487,7 @@ class ProductsService {
     if (!product) throw new HttpError("Product not found", 404, "NOT_FOUND");
 
     const id = product.id;
-    const [categoryChain, labelRows, variantRows, attributeRows, faqRows] = await Promise.all([
+    const [categoryChain, labelRows, variantRows, attributeRows, faqRows, bannerRow] = await Promise.all([
       // the category and its ancestors (breadcrumb)
       sequelize.query(
         `WITH RECURSIVE chain AS (
@@ -544,6 +544,8 @@ class ProductsService {
          ORDER BY sort_order ASC, id ASC`,
         { replacements: { id }, type: QueryTypes.SELECT },
       ),
+      // the product's own banner (the page falls back to its static one when there is none)
+      models.ProductBanners.findOne({ where: { product_id: id, is_active: true }, raw: true }),
     ]);
 
     // variants: id -> { ..., values: { attributeSlug: valueSlug } }
@@ -635,6 +637,15 @@ class ProductsService {
         variants,
         selected_variant_id: selected?.id ?? null,
         details: toPublicFields(resolved),
+        banner_section: bannerRow
+          ? withVisibility({
+              title: text(bannerRow.title),
+              title_ar: text(bannerRow.title_ar),
+              sub_title: text(bannerRow.sub_title),
+              sub_title_ar: text(bannerRow.sub_title_ar),
+              media: singleMediaWithoutType(bannerRow, "media_path", "media_alt", "media_alt_ar"),
+            })
+          : null,
         faqs_section: {
           title: text(faqTitle?.faq_title),
           title_ar: text(faqTitle?.faq_title_ar),

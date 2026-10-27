@@ -53,6 +53,7 @@ const defineDownloads = require("./downloads/downloads");
 const defineProductCategories = require("./products/productCategory");
 const defineProductHighlights = require("./products/productHightlights");
 const defineProducts = require("./products/products");
+const defineProductBanners = require("./products/productBanners");
 const defineProductLabels = require("./products/productLabels");
 const defineProductMedia = require("./products/productMedia");
 const defineAttributes = require("./products/attributes");
@@ -143,6 +144,7 @@ const models = {
   ProductCategories: defineProductCategories(sequelize),
   ProductHighlights: defineProductHighlights(sequelize),
   Products: defineProducts(sequelize),
+  ProductBanners: defineProductBanners(sequelize),
   ProductLabels: defineProductLabels(sequelize),
   ProductMedia: defineProductMedia(sequelize),
 
