@@ -15,14 +15,7 @@ const validationRequestPost = [
 
   body("password")
     .notEmpty().withMessage("Password is required")
-    .isLength({ min: 8, max: 128 }).withMessage("Password must be between 8 and 128 characters")
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage("Password must contain lowercase, uppercase, number, and special char"),
-
-  body("role")
-    .optional()
-    .isIn(["admin", "user"])
-    .withMessage("Role must be either admin or user"),
+    .isLength({ min: 8, max: 128 }).withMessage("Password must be between 8 and 128 characters"),
 ];
 
 // Login Validation
@@ -75,9 +68,7 @@ const validationResetPassword = [
 
   body("password")
     .notEmpty().withMessage("Password is required")
-    .isLength({ min: 8, max: 128 }).withMessage("Password must be between 8 and 128 characters")
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/)
-    .withMessage("Password must contain lowercase, uppercase, number, and special char"),
+    .isLength({ min: 8, max: 128 }).withMessage("Password must be between 8 and 128 characters"),
 ];
 
 module.exports = {

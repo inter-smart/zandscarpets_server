@@ -51,6 +51,14 @@ const SAFE_USER_ATTRIBUTES = ["id", "username", "email", "role_id", "updatedAt"]
 const { serializeUser } = require("../../../../services/permissionService");
 const redisOf = (req) => req.app.get("redisClient");
 
+// Password reset is limited to Admin accounts (the locked system role). The inner join on
+// is_system means a non-admin never matches.
+const ADMIN_ROLE_INCLUDE = [
+  { model: models.AdminRole, as: "roleInfo", where: { is_system: true }, attributes: [] },
+];
+const findResettableAdmin = (email) =>
+  AdminUser.findOne({ where: { email, is_active: true }, include: ADMIN_ROLE_INCLUDE });
+
 const otpKey = (userId) => `pwreset:otp:${userId}`;
 const otpAttemptsKey = (userId) => `pwreset:attempts:${userId}`;
 const otpCooldownKey = (userId) => `pwreset:cooldown:${userId}`;
@@ -370,11 +378,21 @@ class AuthController {
     try {
       const { email } = req.body;
 
-      const user = await AdminUser.findOne({
-        where: { email, is_active: true },
-      });
-      // Explicitly tell the user when the email isn't registered, per product decision.
+      const user = await findResettableAdmin(email);
       if (!user) {
+        // Explicitly tell the user when the email isn't registered, per product decision;
+        // an existing non-admin account gets a distinct message and no OTP is generated.
+        const exists = await AdminUser.count({ where: { email, is_active: true } });
+        if (exists) {
+          return sendErrorResponse(
+            res,
+            new CustomError(
+              "Password reset is only available for admin accounts. Please contact your administrator.",
+              403,
+              "NOT_ADMIN",
+            ),
+          );
+        }
         return sendErrorResponse(
           res,
           new CustomError(
@@ -444,7 +462,12 @@ class AuthController {
 
       return sendSuccessResponse(
         res,
-        { cooldownSeconds: OTP_RESEND_COOLDOWN_SECONDS },
+        {
+          cooldownSeconds: OTP_RESEND_COOLDOWN_SECONDS,
+          expiresInSeconds: OTP_TTL_SECONDS,
+          maxAttempts: OTP_MAX_ATTEMPTS,
+          lockoutSeconds: OTP_LOCKOUT_COOLDOWN_SECONDS,
+        },
         "Verification code sent to your email",
       );
     } catch (error) {
@@ -466,9 +489,7 @@ class AuthController {
           new CustomError("Invalid or expired code", 400, "OTP_INVALID"),
         );
 
-      const user = await AdminUser.findOne({
-        where: { email, is_active: true },
-      });
+      const user = await findResettableAdmin(email);
       if (!user) return invalidOtpError();
 
       const redisClient = req.app.get("redisClient");
@@ -531,7 +552,11 @@ class AuthController {
         { EX: RESET_TOKEN_TTL_SECONDS },
       );
 
-      sendSuccessResponse(res, { resetToken: rawResetToken }, "Code verified");
+      sendSuccessResponse(
+        res,
+        { resetToken: rawResetToken, expiresInSeconds: RESET_TOKEN_TTL_SECONDS },
+        "Code verified",
+      );
     } catch (error) {
       console.error("Verify OTP error:", error);
       sendErrorResponse(res, error);
@@ -546,10 +571,13 @@ class AuthController {
     try {
       const { email, resetToken, password } = req.body;
 
-      const user = await AdminUser.findOne({
-        where: { email, is_active: true },
-      });
-      if (!user) return sendNotFoundError(res, "User");
+      const user = await findResettableAdmin(email);
+      if (!user) {
+        return sendErrorResponse(
+          res,
+          new CustomError("Invalid or expired reset token", 400, "RESET_TOKEN_INVALID"),
+        );
+      }
 
       const redisClient = req.app.get("redisClient");
       if (!redisClient) {

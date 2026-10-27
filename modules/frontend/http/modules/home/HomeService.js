@@ -157,7 +157,13 @@ class HomeService {
         where: { is_active: true, show_in_home: true },
         include: [
           { model: models.ProductLabels, as: "badge", attributes: ["id", "slug", "title", "title_ar"], required: false },
-          { model: models.ProductCategories, as: "category", attributes: ["id", "slug", "title", "title_ar"], where: { is_active: true }, required: true },
+          {
+            model: models.ProductCategories,
+            as: "category",
+            attributes: ["id", "slug", "title", "title_ar"],
+            where: { is_active: true },
+            required: true,
+          },
         ],
         order: [["sort_order", "ASC"]],
       }),
@@ -166,31 +172,28 @@ class HomeService {
     ]);
 
     const sections = {
-      banner_section: this.buildBannerSection(homeBanners),
-      milestones_section: this.buildMilestonesSection(milestones),
-      discover_section: this.buildCategoriesSection(cmsData, homeCategories),
-      industries_section: this.buildIndustriesSection(cmsData, industries),
-      testimonials_section: this.buildTestimonialsSection(testimonials, cmsData),
-      brands_section: this.buildBrandsSection(brands, cmsData),
-      faqs_section: this.buildFaqsSection(faqs, cmsData),
-      side_images_section: this.buildSideImagesSection(sideImages),
+      // banner_section: this.buildBannerSection(homeBanners),
+      // milestones_section: this.buildMilestonesSection(milestones),
+      // discover_section: this.buildCategoriesSection(cmsData, homeCategories),
+      // industries_section: this.buildIndustriesSection(cmsData, industries),
+      // testimonials_section: this.buildTestimonialsSection(testimonials, cmsData),
+      // brands_section: this.buildBrandsSection(brands, cmsData),
+      // faqs_section: this.buildFaqsSection(faqs, cmsData),
+      // side_images_section: this.buildSideImagesSection(sideImages),
       space_section: { title: cmsData?.space_section_title ?? "", title_ar: cmsData?.space_section_title_ar ?? "" },
-      premium_section: this.buildPremiumSection(cmsData),
-      works_section: this.buildWorksSection(cmsData),
-      features_section: this.buildFeaturesSection(features, commonContent),
-      side_section: this.buildSideSection(commonContent),
-      how_it_works_section: this.buildHowItWorksSection(howItWorks, commonContent),
-      residential_section: this.buildResidentialSection(residentialProducts, cmsData),
-      cta_section: this.buildCtaSection(cmsData),
+      // premium_section: this.buildPremiumSection(cmsData),
+      // works_section: this.buildWorksSection(cmsData),
+      // features_section: this.buildFeaturesSection(features, commonContent),
+      // side_section: this.buildSideSection(commonContent),
+      // how_it_works_section: this.buildHowItWorksSection(howItWorks, commonContent),
+      // residential_section: this.buildResidentialSection(residentialProducts, cmsData),
+      // cta_section: this.buildCtaSection(cmsData),
     };
 
     return {
       other_meta: otherMeta.other_meta,
       other_meta_ar: otherMeta.other_meta_ar,
-      ...applyEnabled(
-        Object.fromEntries(Object.entries(sections).map(([key, section]) => [key, withVisibility(section)])),
-        disabled,
-      ),
+      ...applyEnabled(Object.fromEntries(Object.entries(sections).map(([key, section]) => [key, withVisibility(section)])), disabled),
     };
   }
 
