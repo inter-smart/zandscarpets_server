@@ -107,6 +107,12 @@ module.exports = (sequelize) => {
       as: "detailItemExclusions",
     });
 
+    // This variant's own gallery; empty = the product's gallery is shown.
+    ProductVariants.hasMany(models.ProductVariantImages, {
+      foreignKey: "variant_id",
+      as: "images",
+    });
+
     // One SEO meta per variant (see MetaData metaData.js — discriminated by type).
     ProductVariants.hasOne(models.MetaData, {
       foreignKey: "variant_id",

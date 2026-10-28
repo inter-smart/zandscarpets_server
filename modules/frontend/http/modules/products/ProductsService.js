@@ -473,6 +473,7 @@ class ProductsService {
       `SELECT
          p.id, p.slug, p.title, p.title_ar, p.short_description, p.short_description_ar,
          p.product_description, p.product_description_ar,
+         p.list_media_path, p.list_media_alt, p.list_media_alt_ar,
          p.main_media_path, p.media_alt, p.media_alt_ar,
          p.product_category_id,
          b.slug AS badge_slug, b.title AS badge_title, b.title_ar AS badge_title_ar
@@ -487,7 +488,8 @@ class ProductsService {
     if (!product) throw new HttpError("Product not found", 404, "NOT_FOUND");
 
     const id = product.id;
-    const [categoryChain, labelRows, variantRows, attributeRows, faqRows, bannerRow] = await Promise.all([
+    const [categoryChain, labelRows, variantRows, attributeRows, faqRows, bannerRow, productImageRows, variantImageRows] =
+      await Promise.all([
       // the category and its ancestors (breadcrumb)
       sequelize.query(
         `WITH RECURSIVE chain AS (
@@ -546,7 +548,41 @@ class ProductsService {
       ),
       // the product's own banner (the page falls back to its static one when there is none)
       models.ProductBanners.findOne({ where: { product_id: id, is_active: true }, raw: true }),
+      // gallery images after the lead image (the product's list image / the variant's own image)
+      sequelize.query(
+        `SELECT media_path, media_alt, media_alt_ar FROM product_images
+         WHERE product_id = :id AND deleted_at IS NULL
+         ORDER BY sort_order ASC, id ASC`,
+        { replacements: { id }, type: QueryTypes.SELECT },
+      ),
+      sequelize.query(
+        `SELECT vi.variant_id, vi.media_path, vi.media_alt, vi.media_alt_ar
+         FROM product_variant_images vi
+         JOIN product_variants v ON v.id = vi.variant_id AND v.product_id = :id AND v.deleted_at IS NULL
+         WHERE vi.deleted_at IS NULL
+         ORDER BY vi.sort_order ASC, vi.id ASC`,
+        { replacements: { id }, type: QueryTypes.SELECT },
+      ),
     ]);
+
+    // the carousel list: images without a path are dropped and repeats of one file are shown once
+    const uniqueImages = (images) => {
+      const seen = new Set();
+      return images.filter((image) => image.path && !seen.has(image.path) && seen.add(image.path));
+    };
+    const toImage = (row) => singleMediaWithoutType(row, "media_path", "media_alt", "media_alt_ar");
+
+    // product: its list image (the legacy main image when no list image was ever set), then the gallery
+    const productLead = product.list_media_path
+      ? singleMediaWithoutType(product, "list_media_path", "list_media_alt", "list_media_alt_ar")
+      : singleMediaWithoutType(product, "main_media_path", "media_alt", "media_alt_ar");
+    const productImages = uniqueImages([productLead, ...productImageRows.map(toImage)]);
+
+    const variantGalleries = new Map();
+    for (const row of variantImageRows) {
+      if (!variantGalleries.has(row.variant_id)) variantGalleries.set(row.variant_id, []);
+      variantGalleries.get(row.variant_id).push(toImage(row));
+    }
 
     // variants: id -> { ..., values: { attributeSlug: valueSlug } }
     const variantMap = new Map();
@@ -558,6 +594,14 @@ class ProductsService {
           label: text(row.label),
           label_ar: text(row.label_ar),
           media: singleMediaWithoutType(row, "media_path", "media_alt", "media_alt_ar"),
+          // the variant's own image(s); with none of its own it shows the product's
+          images: (() => {
+            const own = uniqueImages([
+              singleMediaWithoutType(row, "media_path", "media_alt", "media_alt_ar"),
+              ...(variantGalleries.get(row.id) ?? []),
+            ]);
+            return own.length ? own : productImages;
+          })(),
           values: {},
         });
       }
@@ -624,7 +668,8 @@ class ProductsService {
           short_description_ar: stripHtml(product.short_description_ar),
           description: articleRichText(product.product_description),
           description_ar: articleRichText(product.product_description_ar),
-          media: singleMediaWithoutType(product, "main_media_path", "media_alt", "media_alt_ar"),
+          media: productLead,
+          images: productImages,
           badge: product.badge_slug
             ? { slug: product.badge_slug, title: text(product.badge_title), title_ar: text(product.badge_title_ar) }
             : null,

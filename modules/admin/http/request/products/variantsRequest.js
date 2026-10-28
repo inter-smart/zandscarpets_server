@@ -37,7 +37,9 @@ const validationRequestPost = [
   optionalString("label_ar", "Label (Arabic)"),
   // Auto-generated from product + attribute values when left blank.
   optionalString("sku", "SKU"),
-  body("media_path").notEmpty().withMessage("Variant image is required").isString().withMessage("Media path must be a string"),
+  // optional: a variant without its own images shows the product's
+  optionalString("media_path", "Media path"),
+  optionalJsonArray("gallery_meta", "Gallery"),
   optionalString("media_alt", "Media alt"),
   optionalString("media_alt_ar", "Media alt (Arabic)"),
   body("sort_order")

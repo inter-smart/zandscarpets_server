@@ -44,7 +44,6 @@ const validationRequestPost = [
   requiredString("product_description", "Product description"),
   requiredString("product_description_ar", "Product description (Arabic)"),
 
-  optionalString("main_media_path", "Main media"),
   optionalString("media_alt", "Main media alt"),
   optionalString("media_alt_ar", "Main media alt (Arabic)"),
   optionalString("list_media_path", "List media"),
@@ -61,6 +60,7 @@ const validationRequestPost = [
   optionalJsonArray("label_ids", "Label ids"),
   optionalJsonArray("related_product_ids", "Related product ids"),
   optionalJsonArray("attribute_ids", "Attribute ids"),
+  optionalJsonArray("gallery_meta", "Gallery"),
 
   body("badge_label_id")
     .optional({ checkFalsy: true })

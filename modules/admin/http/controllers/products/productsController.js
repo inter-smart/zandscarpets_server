@@ -5,9 +5,11 @@ const { sendSuccessResponse, sendErrorResponse, sendNotFoundError, sendValidatio
 const { validationRequestPost, validateId } = require("../../request/products/productsRequest");
 const { validationResult } = require("express-validator");
 const { generateUniqueSlug } = require("../../../../../utils/slugHelper");
+const { syncGallery, deleteGalleryFiles, discardGalleryUploads } = require("../../traits/gallerySync");
 
 const dataModel = models.Products;
-const fileFields = ["main_media_path", "list_media_path"];
+// the list image is the first slide of the detail carousel; `main_media_path` is legacy (no longer edited)
+const fileFields = ["list_media_path"];
 
 // Product labels (features / tags / specifications) are one master table
 // discriminated by `type`; they are all attached through the same join.
@@ -46,9 +48,16 @@ const detailInclude = [
   badgeInclude,
   attributesInclude,
   {
+    model: models.ProductImages,
+    as: "images",
+    attributes: ["id", "media_path", "media_alt", "media_alt_ar", "sort_order"],
+    separate: true,
+    order: [["sort_order", "ASC"], ["id", "ASC"]],
+  },
+  {
     model: dataModel,
     as: "relatedProducts",
-    attributes: ["id", "title", "title_ar", "slug", "main_media_path", "price"],
+    attributes: ["id", "title", "title_ar", "slug", "list_media_path", "price"],
     through: { attributes: [] },
   },
 ];
@@ -59,7 +68,7 @@ const detailInclude = [
 // DISTINCT counting).
 const listSelectColumns = `
   p.id, p.title, p.title_ar, p.slug, p.price,
-  p.main_media_path, p.media_alt,
+  p.list_media_path, p.list_media_alt,
   p.sort_order, p.is_active, p.show_in_home, p.show_in_footer, p.list_in_navbar, p.product_category_id,
   c.id AS category_id, c.title AS category_title,
   COALESCE((
@@ -310,7 +319,7 @@ class ProductController {
       const result = await dataModel.findAll({
         where,
         order: [["sort_order", "ASC"]],
-        attributes: ["id", "title", "title_ar", "slug", "main_media_path", "price"],
+        attributes: ["id", "title", "title_ar", "slug", "list_media_path", "price"],
       });
       sendSuccessResponse(res, result, "Product list retrieved successfully");
     } catch (error) {
@@ -363,6 +372,7 @@ class ProductController {
       // Make sure the badge is also one of the product's labels, then sync links.
       await attachBadgeToLabels(item, ids, t);
       await syncLinks(item, ids, t);
+      await syncGallery(req, { Model: models.ProductImages, foreignKey: "product_id", ownerId: item.id }, t);
 
       await t.commit();
 
@@ -373,6 +383,7 @@ class ProductController {
     } catch (error) {
       console.error("Product create failed:", error);
       await safeRollback(t);
+      await discardGalleryUploads(req);
       return sendErrorResponse(res, error);
     }
   }
@@ -413,8 +424,14 @@ class ProductController {
       // Make sure the badge is also attached to the product's labels.
       await attachBadgeToLabels(item, ids, t);
       await syncLinks(item, ids, t);
+      const removedImages = await syncGallery(
+        req,
+        { Model: models.ProductImages, foreignKey: "product_id", ownerId: item.id },
+        t,
+      );
 
       await t.commit();
+      await deleteGalleryFiles(removedImages);
 
       const updated = await dataModel.findByPk(id, {
         include: detailInclude,
@@ -423,6 +440,7 @@ class ProductController {
     } catch (error) {
       console.error("Product update failed:", error);
       await safeRollback(t);
+      await discardGalleryUploads(req);
       return sendErrorResponse(res, error);
     }
   }
@@ -460,6 +478,7 @@ class ProductController {
         transaction: t,
       });
       const variantIds = variants.map((v) => v.id);
+      let variantImages = [];
       if (variantIds.length) {
         await models.VariantAttributeValues.destroy({
           where: { variant_id: variantIds },
@@ -473,6 +492,14 @@ class ProductController {
           transaction: t,
         });
         await models.DetailMappings.destroy({
+          where: { variant_id: variantIds },
+          transaction: t,
+        });
+        variantImages = await models.ProductVariantImages.findAll({
+          where: { variant_id: variantIds },
+          transaction: t,
+        });
+        await models.ProductVariantImages.destroy({
           where: { variant_id: variantIds },
           transaction: t,
         });
@@ -493,12 +520,15 @@ class ProductController {
         where: { product_id: id },
         transaction: t,
       });
+      const productImages = await models.ProductImages.findAll({ where: { product_id: id }, transaction: t });
+      await models.ProductImages.destroy({ where: { product_id: id }, transaction: t });
       await item.destroy({ transaction: t });
 
       await t.commit();
 
       await deleteOldFile(item.main_media_path);
       await deleteOldFile(item.list_media_path);
+      await deleteGalleryFiles([...productImages, ...variantImages]);
 
       sendSuccessResponse(res, { id }, "Product deleted successfully");
     } catch (error) {

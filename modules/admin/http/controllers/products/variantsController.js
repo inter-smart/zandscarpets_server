@@ -19,6 +19,7 @@ const {
   validateId,
 } = require("../../request/products/variantsRequest");
 const { validationResult } = require("express-validator");
+const { syncGallery, deleteGalleryFiles, discardGalleryUploads } = require("../../traits/gallerySync");
 
 const dataModel = models.ProductVariants;
 const fileFields = ["media_path"];
@@ -58,6 +59,13 @@ const detailInclude = [
     attributes: ["id", "title", "title_ar"],
   },
   valueLinksInclude,
+  {
+    model: models.ProductVariantImages,
+    as: "images",
+    attributes: ["id", "media_path", "media_alt", "media_alt_ar", "sort_order"],
+    separate: true,
+    order: [["sort_order", "ASC"], ["id", "ASC"]],
+  },
 ];
 
 const safeRollback = async (t) => {
@@ -375,6 +383,7 @@ class VariantsController {
       );
 
       await replaceValueLinks(item.id, selection.links, t);
+      await syncGallery(req, { Model: models.ProductVariantImages, foreignKey: "variant_id", ownerId: item.id }, t);
 
       await t.commit();
 
@@ -382,6 +391,7 @@ class VariantsController {
       return sendSuccessResponse(res, created, "Product variant created successfully", 201);
     } catch (error) {
       await safeRollback(t);
+      await discardGalleryUploads(req);
       return sendErrorResponse(res, error);
     }
   }
@@ -448,13 +458,20 @@ class VariantsController {
       }
 
       await item.update(fields, { transaction: t });
+      const removedImages = await syncGallery(
+        req,
+        { Model: models.ProductVariantImages, foreignKey: "variant_id", ownerId: item.id },
+        t,
+      );
 
       await t.commit();
+      await deleteGalleryFiles(removedImages);
 
       const updated = await dataModel.findByPk(item.id, { include: detailInclude });
       return sendSuccessResponse(res, updated, "Product variant updated successfully");
     } catch (error) {
       await safeRollback(t);
+      await discardGalleryUploads(req);
       return sendErrorResponse(res, error);
     }
   }
@@ -488,10 +505,16 @@ class VariantsController {
         transaction: t,
       });
       const mediaPath = item.media_path;
+      const galleryRows = await models.ProductVariantImages.findAll({
+        where: { variant_id: item.id },
+        transaction: t,
+      });
+      await models.ProductVariantImages.destroy({ where: { variant_id: item.id }, transaction: t });
       await item.destroy({ transaction: t });
 
       await t.commit();
       await deleteOldFile(mediaPath);
+      await deleteGalleryFiles(galleryRows);
 
       return sendSuccessResponse(res, { id: item.id }, "Product variant deleted successfully");
     } catch (error) {

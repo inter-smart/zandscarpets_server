@@ -161,6 +161,12 @@ module.exports = (sequelize) => {
       as: "metaData",
     });
 
+    // Gallery shown after the list image in the detail carousel.
+    Products.hasMany(models.ProductImages, {
+      foreignKey: "product_id",
+      as: "images",
+    });
+
     // The product's own detail-page banner (at most one).
     Products.hasOne(models.ProductBanners, {
       foreignKey: "product_id",
