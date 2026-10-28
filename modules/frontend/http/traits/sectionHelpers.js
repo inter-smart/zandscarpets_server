@@ -1,4 +1,5 @@
 const sanitizeHtml = require("sanitize-html");
+const { BASE_URL } = require("../../../../constants");
 
 const stripHtml = (value) =>
   String(value ?? "")
@@ -64,7 +65,7 @@ const articleRichText = (html) =>
     allowedTags: ["h2", "h3", "h4", "p", "br", "strong", "b", "em", "i", "u", "s", "ul", "ol", "li", "blockquote", "a", "img", "span"],
     allowedAttributes: {
       a: ["href", "target", "rel"],
-      img: ["src", "alt", "title"],
+      img: ["src", "alt", "title", "loading"],
       span: ["style"],
       // the admin editor marks an icon-style bullet list with this class; the storefront
       // renders it with a check-icon marker instead of a native bullet
@@ -76,6 +77,12 @@ const articleRichText = (html) =>
     allowedSchemesByTag: { img: ["http", "https"] },
     allowProtocolRelative: false,
     transformTags: {
+      // images uploaded in the admin editor are saved as `/uploads/...`; serve them from the API host
+      img: (tagName, attribs) => {
+        const src = attribs.src || "";
+        const resolved = src.startsWith("/uploads/") && BASE_URL ? `${BASE_URL}${src}` : src;
+        return { tagName, attribs: { ...attribs, src: resolved, loading: "lazy" } };
+      },
       a: (tagName, attribs) => {
         const { target, ...rest } = attribs;
         const external = /^https?:\/\//i.test(rest.href || "");
