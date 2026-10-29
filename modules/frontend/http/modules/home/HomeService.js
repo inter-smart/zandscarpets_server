@@ -64,8 +64,6 @@ const homeSideImageAttributes = [
   "sort_order",
 ];
 
-const commonListAttributes = ["id", "title", "title_ar", "description", "description_ar", "sort_order"];
-
 const homeProductAttributes = [
   "id",
   "slug",
@@ -82,7 +80,7 @@ const homeProductAttributes = [
 
 class HomeService {
   static async index() {
-    const [cmsData, commonContent] = await Promise.all([models.HomeCms.findOne({}), models.CommonContent.findOne({})]);
+    const [cmsData, { commonContent, features, howItWorks }] = await Promise.all([models.HomeCms.findOne({}), CommonSections.fetch()]);
     if (!cmsData) {
       throw new Error("No CMS data found for About page");
     }
@@ -95,8 +93,6 @@ class HomeService {
       brands = [],
       faqs = [],
       sideImages = [],
-      features = [],
-      howItWorks = [],
       residentialProducts = [],
       otherMeta,
       disabled,
@@ -150,8 +146,6 @@ class HomeService {
         order: [["sort_order", "ASC"]],
       }),
       models.HomeSideImages.findAll({ ...orderedActive, attributes: homeSideImageAttributes }),
-      models.CommonFeatures.findAll({ ...orderedActive, attributes: commonListAttributes }),
-      models.CommonHowItWorks.findAll({ ...orderedActive, attributes: commonListAttributes }),
       models.Products.findAll({
         attributes: homeProductAttributes,
         where: { is_active: true, show_in_home: true },
