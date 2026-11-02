@@ -96,7 +96,7 @@ class BlogsService {
       ),
       models.AdsBanner.findAll({
         where: { is_active: true },
-        attributes: ["id", "media_path", "media_alt", "media_alt_ar", "link", "link_new_tab", "button_text", "button_text_ar"],
+        attributes: ["id", "media_path", "mobile_media_path", "media_alt", "media_alt_ar", "link", "link_new_tab", "button_text", "button_text_ar"],
         order: [["sort_order", "ASC"], ["id", "ASC"]],
         limit: 2,
       }),
@@ -129,6 +129,7 @@ class BlogsService {
           .map((item) => ({
             id: item.id,
             media: toMedia(item),
+            mobile_media: item.mobile_media_path ? toMedia(item, "mobile_media_path") : null,
             link: text(item.link),
             new_tab: Boolean(item.link_new_tab),
             button_text: text(item.button_text),

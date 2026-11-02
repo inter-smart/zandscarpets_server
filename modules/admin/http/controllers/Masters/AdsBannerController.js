@@ -18,7 +18,7 @@ const {
 const { validationResult } = require("express-validator");
 
 const dataModel = models.AdsBanner;
-const fileFields = ["media_path"];
+const fileFields = ["media_path", "mobile_media_path"];
 
 class AdsBannerController {
   static async list(req, res) {
@@ -99,6 +99,7 @@ class AdsBannerController {
       if (!item) return sendNotFoundError(res, "Ads Banner item");
 
       if (item.media_path) await deleteOldFile(item.media_path);
+      if (item.mobile_media_path) await deleteOldFile(item.mobile_media_path);
 
       await item.destroy();
 

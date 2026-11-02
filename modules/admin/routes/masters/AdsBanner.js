@@ -5,7 +5,7 @@ const authMiddleware = require("../../http/middleware/authMiddleware");
 
 const router = express.Router();
 
-const uploadFields = [{ name: "media_path" }];
+const uploadFields = [{ name: "media_path" }, { name: "mobile_media_path" }];
 const upload = createUploadMiddleware("ads-banner", uploadFields);
 
 router.use(authMiddleware({ module: "site_elements" }));

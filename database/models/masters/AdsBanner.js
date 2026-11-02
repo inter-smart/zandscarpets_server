@@ -13,6 +13,11 @@ module.exports = (sequelize) => {
         type: DataTypes.TEXT,
         allowNull: true,
       },
+      // optional image shown on small screens instead of media_path
+      mobile_media_path: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
       media_alt: {
         type: DataTypes.STRING,
         allowNull: true,
