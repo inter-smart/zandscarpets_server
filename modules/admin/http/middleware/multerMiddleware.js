@@ -49,6 +49,8 @@ const extractFilePathFromUrl = (url, subfolder) => {
 // upload so the main/list images stay image-only).
 // options.iconOnly restricts the instance to SVG files (social icons).
 // options.imageOnly restricts this instance to jpeg/png/webp images (no svg/video).
+// options.allowClear passes an explicit empty string through for a file field
+// (instead of treating it as "not provided") so a controller can remove the file.
 // options.maxFileSizeBytes overrides the default 5MB ceiling for this
 // instance only (e.g. detail-media raises it to fit a 10MB video, while
 // every other caller keeps the original 5MB default).
@@ -160,6 +162,9 @@ const createUploadMiddleware = (subfolder, fields, options = {}) => {
               console.warn(`Invalid URL for ${fieldName}: ${input}`);
               normalizedBody[fieldName] = undefined; // Let controller handle
             }
+          } else if (options.allowClear && input === "") {
+            // Explicit empty value = "remove the current file"; the controller handles it
+            normalizedBody[fieldName] = "";
           } else {
             normalizedBody[fieldName] = undefined; // No input provided
           }

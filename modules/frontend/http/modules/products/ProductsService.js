@@ -121,7 +121,11 @@ const CARD_COLUMNS = `
         c.title_ar AS category_title_ar,
         b.slug AS badge_slug,
         b.title AS badge_title,
-        b.title_ar AS badge_title_ar`;
+        b.title_ar AS badge_title_ar,
+        EXISTS (
+          SELECT 1 FROM product_variants pv
+          WHERE pv.product_id = p.id AND pv.is_active = true AND pv.deleted_at IS NULL
+        ) AS has_variants`;
 
 const CARD_JOINS = `
       JOIN product_categories c ON c.id = p.product_category_id AND c.is_active = true AND c.deleted_at IS NULL
@@ -147,6 +151,7 @@ const toCard = (row) => ({
     title: text(row.category_title),
     title_ar: text(row.category_title_ar),
   },
+  has_variants: Boolean(row.has_variants),
 });
 
 const toOption = (row) => ({ slug: row.slug, title: text(row.title), title_ar: text(row.title_ar) });
@@ -619,10 +624,18 @@ class ProductsService {
     const rawChosen = Object.fromEntries(parseAttributes(req?.query?.attrs).map(([attribute, values]) => [attribute, values[0]]));
     const attributeSlugs = [...new Set(attributeRows.map((row) => row.attribute_slug))];
     const chosen = narrowChosen(variants, attributeSlugs, rawChosen);
-    const selected =
+    let selected =
       attributeSlugs.length > 0 && attributeSlugs.every((slug) => chosen[slug])
         ? (variants.find((variant) => attributeSlugs.every((slug) => variant.values[slug] === chosen[slug])) ?? null)
         : null;
+    // Opt-in (`?default_variant=1`, sent by the product page only): with nothing resolved, open on
+    // the first variant that fits what IS picked, else the first variant. The variant proxy omits
+    // it, so clearing a choice still returns the product's own content.
+    if (!selected && variants.length > 0 && req?.query?.default_variant === "1") {
+      selected =
+        variants.find((variant) => Object.entries(chosen).every(([slug, value]) => variant.values[slug] === value)) ??
+        variants[0];
+    }
 
     const attributes = [];
     for (const row of attributeRows) {

@@ -85,9 +85,17 @@ class HomeTestimonialsController {
       }
 
       await handleFileUploadUpdate(req, item, fileFields);
+
+      // empty value without a new upload = the admin removed the image
+      const oldProfilePath = item.profile_media_path;
+      const profileRemoved = req.body.profile_media_path === "" && oldProfilePath;
+      if (req.body.profile_media_path === "") req.body.profile_media_path = null;
+
       await item.update(req.body, { transaction: t });
 
       await t.commit();
+
+      if (profileRemoved) await deleteOldFile(oldProfilePath);
 
       sendSuccessResponse(res, item, "Home testimonial updated successfully");
     } catch (error) {

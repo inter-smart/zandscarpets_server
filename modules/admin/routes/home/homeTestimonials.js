@@ -6,7 +6,7 @@ const authMiddleware = require("../../http/middleware/authMiddleware");
 const router = express.Router();
 
 const uploadFields = [{ name: "profile_media_path" }];
-const upload = createUploadMiddleware("home-testimonials", uploadFields);
+const upload = createUploadMiddleware("home-testimonials", uploadFields, { allowClear: true });
 
 router.use(authMiddleware({ module: "website_pages" }));
 router.get("/", Controller.list);
