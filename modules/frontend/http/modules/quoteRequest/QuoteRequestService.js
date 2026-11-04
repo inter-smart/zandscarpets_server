@@ -86,11 +86,13 @@ class QuoteRequestService {
         variant_label: variant ? variant.label : item.variant_label || null,
         variant_label_ar: variant ? variant.label_ar : item.variant_label_ar || null,
         variant_sku: variant ? variant.sku : item.variant_sku || null,
-        media_path: variant
-          ? absoluteMediaUrl(variant.media_path)
-          : product
-            ? absoluteMediaUrl(product.list_media_path)
-            : item.media_path || null,
+        // Variant image first; variants often have none, so fall back to the
+        // product's list image, then whatever the client sent.
+        media_path:
+          absoluteMediaUrl(variant?.media_path) ||
+          absoluteMediaUrl(product?.list_media_path) ||
+          item.media_path ||
+          null,
         quantity: item.quantity,
         unit_price_snapshot: product ? product.price : null,
       };

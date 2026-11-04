@@ -5,13 +5,13 @@ const validationRequestPost = [
   body("title_ar").trim().notEmpty().withMessage("Arabic title is required").isString().withMessage("Arabic title must be a string"),
   body("slug").optional({ nullable: true }).isString().withMessage("Slug must be a string"),
   body("excerpt").trim().notEmpty().withMessage("Excerpt is required").isString().withMessage("Excerpt must be a string"),
-  body("excerpt_ar").optional({ nullable: true }).isString().withMessage("Arabic excerpt must be a string"),
+  body("excerpt_ar").trim().notEmpty().withMessage("Arabic excerpt is required").isString().withMessage("Arabic excerpt must be a string"),
   body("content").notEmpty().withMessage("Content is required").isString().withMessage("Content must be a string"),
-  body("content_ar").optional({ nullable: true }).isString().withMessage("Arabic content must be a string"),
+  body("content_ar").notEmpty().withMessage("Arabic content is required").isString().withMessage("Arabic content must be a string"),
   body("author_name").optional({ nullable: true }).isString().withMessage("Author must be a string"),
   body("author_name_ar").optional({ nullable: true }).isString().withMessage("Arabic author must be a string"),
   body("media_alt").optional({ nullable: true }).isString().withMessage("Hero alt text must be a string"),
-  body("media_alt_ar").optional({ nullable: true }).isString().withMessage("Arabic hero alt text must be a string"),
+  body("media_alt_ar").trim().notEmpty().withMessage("Arabic hero alt text is required").isString().withMessage("Arabic hero alt text must be a string"),
   body("published_at")
     .optional({ nullable: true, checkFalsy: true })
     .isISO8601()

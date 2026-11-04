@@ -2,6 +2,7 @@ const { models } = require("../../../../../database/models");
 const { singleMediaWithType, singleMediaWithoutType } = require("../../traits/mediaButtonHelper");
 const MetaTagService = require("../metaTag/MetaTagService");
 const CommonSections = require("../common/CommonSections");
+const GeneralFaqs = require("../common/GeneralFaqs");
 const { withVisibility, getDisabledSections, applyEnabled, inlineRichText, blockRichText } = require("../../traits/sectionHelpers");
 
 const orderedActive = { where: { is_active: true }, order: [["sort_order", "ASC"]] };
@@ -52,7 +53,6 @@ const homeTestimonialAttributes = [
 
 const homeBrandAttributes = ["id", "media_path", "media_alt", "media_alt_ar", "sort_order"];
 
-const homeFaqAttributes = ["id", "question", "question_ar", "answer", "answer_ar", "sort_order"];
 const homeSideImageAttributes = [
   "id",
   "before_media_path",
@@ -91,7 +91,7 @@ class HomeService {
       industries = [],
       testimonials = [],
       brands = [],
-      faqs = [],
+      faqsData,
       sideImages = [],
       residentialProducts = [],
       otherMeta,
@@ -140,11 +140,7 @@ class HomeService {
       }),
       models.HomeTestimonials.findAll({ ...orderedActive, attributes: homeTestimonialAttributes }),
       models.HomeBrands.findAll({ ...orderedActive, attributes: homeBrandAttributes }),
-      models.Faqs.findAll({
-        attributes: homeFaqAttributes,
-        where: { is_active: true, product_id: null },
-        order: [["sort_order", "ASC"]],
-      }),
+      GeneralFaqs.fetch(),
       models.HomeSideImages.findAll({ ...orderedActive, attributes: homeSideImageAttributes }),
       models.Products.findAll({
         attributes: homeProductAttributes,
@@ -172,7 +168,7 @@ class HomeService {
       industries_section: this.buildIndustriesSection(cmsData, industries),
       testimonials_section: this.buildTestimonialsSection(testimonials, cmsData),
       brands_section: this.buildBrandsSection(brands, cmsData),
-      faqs_section: this.buildFaqsSection(faqs, cmsData),
+      faqs_section: GeneralFaqs.buildSection(faqsData),
       side_images_section: this.buildSideImagesSection(sideImages),
       space_section: { title: cmsData?.space_section_title ?? "", title_ar: cmsData?.space_section_title_ar ?? "" },
       premium_section: this.buildPremiumSection(cmsData),
@@ -317,20 +313,6 @@ class HomeService {
       list: brands.map((item) => ({
         id: item?.id,
         media: singleMediaWithoutType(item, "media_path", "media_alt", "media_alt_ar"),
-      })),
-    };
-  }
-
-  static buildFaqsSection(faqs, cmsData) {
-    return {
-      title: cmsData?.faq_title ?? "",
-      title_ar: cmsData?.faq_title_ar ?? "",
-      list: faqs.map((item) => ({
-        id: item?.id,
-        question: item?.question ?? "",
-        question_ar: item?.question_ar ?? "",
-        answer: item?.answer ?? "",
-        answer_ar: item?.answer_ar ?? "",
       })),
     };
   }

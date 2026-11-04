@@ -6,6 +6,7 @@ const { HttpError } = require("../../traits/HttpError");
 const { toPublicFields } = require("../../traits/detailFieldsPublic");
 const { resolveVariantDetails, resolveProductDetails } = require("../../../../../services/detailsResolverService");
 const MetaTagService = require("../metaTag/MetaTagService");
+const GeneralFaqs = require("../common/GeneralFaqs");
 
 const DEFAULT_LIMIT = 6;
 // the storefront can ask for the first N pages at once (a `?page=N` link)
@@ -163,7 +164,7 @@ class ProductsService {
   // extra scripts and the general FAQs (the ones that don't belong to a product; the heading
   // is the home page's FAQ title).
   static async page() {
-    const [banner = [], otherMeta, faqs = [], homeCms, disabled] = await Promise.all([
+    const [banner = [], otherMeta, faqsData, disabled] = await Promise.all([
       models.Banners.findAll({
         include: [
           {
@@ -176,12 +177,7 @@ class ProductsService {
         ],
       }),
       MetaTagService.getOtherMetaForPage("products"),
-      models.Faqs.findAll({
-        attributes: ["id", "question", "question_ar", "answer", "answer_ar", "sort_order"],
-        where: { is_active: true, product_id: null },
-        order: [["sort_order", "ASC"], ["id", "ASC"]],
-      }),
-      models.HomeCms.findOne({ attributes: ["faq_title", "faq_title_ar"] }),
+      GeneralFaqs.fetch(),
       getDisabledSections("products"),
     ]);
 
@@ -193,17 +189,7 @@ class ProductsService {
       media: singleMediaWithoutType(banner[0], "media_path", "media_alt", "media_alt_ar"),
     };
 
-    const faqsSection = {
-      title: text(homeCms?.faq_title),
-      title_ar: text(homeCms?.faq_title_ar),
-      list: faqs.map((item) => ({
-        id: item.id,
-        question: text(item.question),
-        question_ar: text(item.question_ar),
-        answer: text(item.answer),
-        answer_ar: text(item.answer_ar),
-      })),
-    };
+    const faqsSection = GeneralFaqs.buildSection(faqsData);
 
     return {
       data: {

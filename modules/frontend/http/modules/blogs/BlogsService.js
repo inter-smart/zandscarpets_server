@@ -52,7 +52,7 @@ const CARD_COLUMNS = `
 class BlogsService {
   // Page-level content: banner (the banner linked to the `blogs` page), the page's JSON-LD / extra
   // scripts, the headings, the filter options (only categories and tags that published posts use)
-  // and the first two active ad banners.
+  // and all active ad banners.
   static async page() {
     const [banner = [], otherMeta, cms, categoryRows, tagRows, ads = []] = await Promise.all([
       models.Banners.findAll({
@@ -98,7 +98,6 @@ class BlogsService {
         where: { is_active: true },
         attributes: ["id", "media_path", "mobile_media_path", "media_alt", "media_alt_ar", "link", "link_new_tab", "button_text", "button_text_ar"],
         order: [["sort_order", "ASC"], ["id", "ASC"]],
-        limit: 2,
       }),
     ]);
 
