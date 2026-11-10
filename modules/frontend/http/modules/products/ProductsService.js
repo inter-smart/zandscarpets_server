@@ -505,7 +505,7 @@ class ProductsService {
       // one row per (variant, attribute value)
       sequelize.query(
         `SELECT v.id, v.label, v.label_ar, v.sku, v.media_path, v.media_alt, v.media_alt_ar,
-                a.slug AS attribute_slug, av.slug AS value_slug
+                a.slug AS attribute_slug, COALESCE(NULLIF(av.slug, ''), 'value-' || av.id) AS value_slug
          FROM product_variants v
          LEFT JOIN variant_attribute_values vav ON vav.variant_id = v.id
          LEFT JOIN attribute_values av ON av.id = vav.attribute_value_id AND av.is_active = true AND av.deleted_at IS NULL
@@ -519,7 +519,7 @@ class ProductsService {
         `SELECT DISTINCT
                 pa.sort_order AS attribute_order, a.id AS attribute_id, a.slug AS attribute_slug,
                 a.title AS attribute_title, a.title_ar AS attribute_title_ar, a.type AS attribute_type,
-                av.id AS value_id, av.slug AS value_slug, av.value, av.value_ar, av.color_code,
+                av.id AS value_id, COALESCE(NULLIF(av.slug, ''), 'value-' || av.id) AS value_slug, av.value, av.value_ar, av.color_code,
                 av.media_path, av.media_alt, av.media_alt_ar, av.sort_order AS value_order
          FROM product_attributes pa
          JOIN attributes a ON a.id = pa.attribute_id AND a.is_active = true AND a.deleted_at IS NULL
@@ -618,9 +618,14 @@ class ProductsService {
     // the first variant that fits what IS picked, else the first variant. The variant proxy omits
     // it, so clearing a choice still returns the product's own content.
     if (!selected && variants.length > 0 && req?.query?.default_variant === "1") {
-      selected =
-        variants.find((variant) => Object.entries(chosen).every(([slug, value]) => variant.values[slug] === value)) ??
-        variants[0];
+      // Prefer the fitting variant that covers the most attributes, so every group gets preselected
+      // (ties keep the sort order). Works for any number of attributes.
+      const coverage = (variant) => attributeSlugs.filter((slug) => variant.values[slug]).length;
+      const fitting = variants.filter((variant) =>
+        Object.entries(chosen).every(([slug, value]) => variant.values[slug] === value),
+      );
+      const pool = fitting.length > 0 ? fitting : variants;
+      selected = pool.reduce((best, variant) => (coverage(variant) > coverage(best) ? variant : best), pool[0]);
     }
 
     const attributes = [];
