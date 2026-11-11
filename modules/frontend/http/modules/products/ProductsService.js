@@ -107,6 +107,20 @@ const ANCESTORS_ACTIVE = (alias) => `NOT EXISTS (
   WHERE x.id IN (SELECT id FROM anc) AND (x.is_active = false OR x.deleted_at IS NOT NULL)
 )`;
 
+// SQL condition (alias `p` = products): the product sits in one of the categories chosen by
+// `:categorySlugs` or in any active sub-category below them, at any depth. An unknown / disabled
+// category matches nothing. UNION (not UNION ALL) guards against a parent_id cycle.
+const CATEGORY_SUBTREE_FILTER = `p.product_category_id IN (
+  WITH RECURSIVE tree(id) AS (
+    SELECT id FROM product_categories
+    WHERE slug IN (:categorySlugs) AND is_active = true AND deleted_at IS NULL
+    UNION
+    SELECT c.id FROM product_categories c JOIN tree t ON c.parent_id = t.id
+    WHERE c.is_active = true AND c.deleted_at IS NULL
+  )
+  SELECT id FROM tree
+)`;
+
 const CARD_COLUMNS = `
         p.id,
         p.slug,
@@ -321,9 +335,7 @@ class ProductsService {
 
     const conditions = ["a.is_active = true", "a.deleted_at IS NULL", "a.slug IS NOT NULL", "av.slug IS NOT NULL"];
     if (categorySlugs.length) {
-      conditions.push(
-        "p.product_category_id IN (SELECT id FROM product_categories WHERE slug IN (:categorySlugs) AND is_active = true AND deleted_at IS NULL)",
-      );
+      conditions.push(CATEGORY_SUBTREE_FILTER);
       replacements.categorySlugs = categorySlugs;
     }
     if (tagSlugs.length) {
@@ -382,8 +394,8 @@ class ProductsService {
   }
 
   // Paginated list of active products (whose category is active). Filters (all optional):
-  //  - `?category=a,b`: category slugs; only the products of those categories themselves (a
-  //    sub-category's products come with it when it is selected too)
+  //  - `?category=a,b`: category slugs; the products of those categories and of all their
+  //    active sub-categories (any depth)
   //  - `?attrs=color:oak,color:grey,size:2m`: attribute:value slugs. A product matches when one of
   //    its active variants has, for every attribute given, one of the chosen values.
   //  - `?tag=a,b`: tag label slugs; a product matches when it carries any of them
@@ -405,9 +417,7 @@ class ProductsService {
 
     if (categorySlugs.length) {
       // an unknown / disabled category matches nothing
-      where.push(
-        "p.product_category_id IN (SELECT id FROM product_categories WHERE slug IN (:categorySlugs) AND is_active = true AND deleted_at IS NULL)",
-      );
+      where.push(CATEGORY_SUBTREE_FILTER);
       replacements.categorySlugs = categorySlugs;
     }
 
