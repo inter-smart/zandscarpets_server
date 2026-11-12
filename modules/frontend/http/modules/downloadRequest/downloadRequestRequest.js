@@ -11,7 +11,7 @@ const validationRequestPost = [
     .notEmpty()
     .withMessage((_, { req }) => message(req, "nameRequired"))
     .bail()
-    .isLength({ min: 4 })
+    .isLength({ min: 2 })
     .withMessage((_, { req }) => message(req, "nameMin"))
     .bail()
     .isLength({ max: 100 })
