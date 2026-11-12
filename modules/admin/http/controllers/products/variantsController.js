@@ -19,6 +19,7 @@ const {
   validateId,
 } = require("../../request/products/variantsRequest");
 const { validationResult } = require("express-validator");
+const { parsePickerQuery, searchCondition, pickerPageResult } = require("../../traits/pickerPagination");
 const { syncGallery, deleteGalleryFiles, discardGalleryUploads } = require("../../traits/gallerySync");
 
 const dataModel = models.ProductVariants;
@@ -257,6 +258,26 @@ const normalizeSelections = (raw) => {
 class VariantsController {
   static async getActive(req, res) {
     try {
+      // Paged mode (picker dropdowns): lean id/label (+ product title) rows, searched server-side.
+      const paging = parsePickerQuery(req.query);
+      if (paging) {
+        const where = { is_active: true };
+        const pickedId = parseInt(req.query.id, 10);
+        if (Number.isInteger(pickedId) && pickedId > 0) where.id = pickedId;
+        const search = searchCondition(["label", "$product.title$"], paging.search);
+        if (search) Object.assign(where, search);
+        const { rows, count } = await dataModel.findAndCountAll({
+          where,
+          order: [["sort_order", "ASC"], ["id", "ASC"]],
+          attributes: ["id", "label"],
+          include: [{ model: models.Products, as: "product", attributes: ["id", "title"], required: false }],
+          limit: paging.limit,
+          offset: paging.offset,
+          subQuery: false,
+        });
+        return sendSuccessResponse(res, pickerPageResult(rows, count, paging), "Active product variants retrieved successfully");
+      }
+
       const result = await dataModel.findAll({
         where: { is_active: true },
         order: [

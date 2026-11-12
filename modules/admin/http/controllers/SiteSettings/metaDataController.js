@@ -33,6 +33,21 @@ const targetNoun = (type) => {
   return nouns[type] || "target";
 };
 
+const WRITABLE_FIELDS = [
+  "type", "page_name", "product_id", "variant_id", "blog_id", "project_id",
+  "meta_title", "meta_title_ar", "meta_description", "meta_description_ar",
+  "meta_keywords", "meta_keywords_ar", "other_meta", "other_meta_ar",
+];
+const pickWritable = (body) =>
+  Object.fromEntries(WRITABLE_FIELDS.filter((k) => body[k] !== undefined).map((k) => [k, body[k]]));
+
+const VARIANT_INCLUDE = {
+  model: models.ProductVariants,
+  as: "variant",
+  attributes: ["id", "label"],
+  include: [{ model: models.Products, as: "product", attributes: ["id", "title"], required: false }],
+};
+
 class MetaDataController {
   static async list(req, res) {
     try {
@@ -53,7 +68,7 @@ class MetaDataController {
         where,
         include: [
           { model: models.Products, as: "product", attributes: ["id", "title"] },
-          { model: models.ProductVariants, as: "variant", attributes: ["id", "label"] },
+          VARIANT_INCLUDE,
           { model: models.Projects, as: "project", attributes: ["id", "title"] },
         ],
         order: [
@@ -82,7 +97,7 @@ class MetaDataController {
       const item = await dataModel.findByPk(id, {
         include: [
           { model: models.Products, as: "product", attributes: ["id", "title"] },
-          { model: models.ProductVariants, as: "variant", attributes: ["id", "label"] },
+          VARIANT_INCLUDE,
           { model: models.Projects, as: "project", attributes: ["id", "title"] },
         ],
       });
@@ -114,7 +129,7 @@ class MetaDataController {
         }
       }
 
-      const item = await dataModel.create(req.body);
+      const item = await dataModel.create(pickWritable(req.body));
 
       sendSuccessResponse(res, item, "Meta data item created successfully", 201);
     } catch (error) {
@@ -151,7 +166,7 @@ class MetaDataController {
         }
       }
 
-      await item.update(req.body);
+      await item.update(pickWritable(req.body));
 
       sendSuccessResponse(res, item, "Meta data item updated successfully");
     } catch (error) {

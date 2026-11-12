@@ -4,6 +4,7 @@ const { handleFileUploadUpdate, handleFileUploadStore, deleteOldFile } = require
 const { sendSuccessResponse, sendErrorResponse, sendNotFoundError, sendValidationError } = require("../../traits/responseHandler");
 const { validationRequestPost, validateId } = require("../../request/products/productsRequest");
 const { validationResult } = require("express-validator");
+const { parsePickerQuery, searchCondition, pickerPageResult } = require("../../traits/pickerPagination");
 const { generateUniqueSlug } = require("../../../../../utils/slugHelper");
 const { syncGallery, deleteGalleryFiles, discardGalleryUploads } = require("../../traits/gallerySync");
 
@@ -316,6 +317,23 @@ class ProductController {
       if (Number.isInteger(excludeId) && excludeId > 0) {
         where.id = { [Op.ne]: excludeId };
       }
+      // Paged mode (picker dropdowns): lean id/title rows, searched server-side.
+      const paging = parsePickerQuery(req.query);
+      if (paging) {
+        const pickedId = parseInt(req.query.id, 10);
+        if (Number.isInteger(pickedId) && pickedId > 0) where.id = pickedId;
+        const search = searchCondition(["title", "slug"], paging.search);
+        if (search) Object.assign(where, search);
+        const { rows, count } = await dataModel.findAndCountAll({
+          where,
+          order: [["sort_order", "ASC"], ["id", "ASC"]],
+          attributes: ["id", "title"],
+          limit: paging.limit,
+          offset: paging.offset,
+        });
+        return sendSuccessResponse(res, pickerPageResult(rows, count, paging), "Product list retrieved successfully");
+      }
+
       const result = await dataModel.findAll({
         where,
         order: [["sort_order", "ASC"]],

@@ -14,6 +14,7 @@ const {
 const { paginate } = require("../../traits/datatablePaginationHelper");
 const { validationRequestPost, validateId } = require("../../request/blogs/blogRequest");
 const { validationResult } = require("express-validator");
+const { parsePickerQuery, searchCondition, pickerPageResult } = require("../../traits/pickerPagination");
 const { generateSlug, generateUniqueSlug, assertNoDuplicate } = require("../../../../../utils/slugHelper");
 
 const { BASE_URL } = require("../../../../../constants");
@@ -184,6 +185,24 @@ class BlogController {
    */
   static async getActive(req, res) {
     try {
+      // Paged mode (picker dropdowns): lean slug/title rows, searched server-side.
+      const paging = parsePickerQuery(req.query);
+      if (paging) {
+        const where = { is_active: true, slug: { [Op.ne]: null } };
+        if (req.query.id) where.slug = String(req.query.id);
+        const search = searchCondition(["title", "slug"], paging.search);
+        if (search) Object.assign(where, search);
+        const { rows, count } = await dataModel.findAndCountAll({
+          where,
+          order: [["published_at", "DESC"], ["id", "DESC"]],
+          attributes: ["slug", "title"],
+          limit: paging.limit,
+          offset: paging.offset,
+        });
+        const data = rows.map((row) => ({ id: row.slug, title: row.title }));
+        return sendSuccessResponse(res, pickerPageResult(data, count, paging), "Blog posts retrieved successfully");
+      }
+
       const rows = await dataModel.findAll({
         where: { is_active: true },
         attributes: ["slug", "title", "title_ar"],
@@ -313,7 +332,16 @@ class BlogController {
         }
       }
 
+      const previousSlug = item.slug;
       await item.update(req.body, { transaction: t });
+
+      // SEO meta rows reference a blog by its slug string (no FK), so follow a slug change
+      if (previousSlug && previousSlug !== req.body.slug) {
+        await models.MetaData.update(
+          { blog_id: req.body.slug },
+          { where: { type: "blog", blog_id: previousSlug }, transaction: t },
+        );
+      }
 
       if (categoryIds !== null) {
         await item.setCategories(await existingIds(models.ProductCategories, categoryIds), { transaction: t });
@@ -362,6 +390,10 @@ class BlogController {
         where: { [Op.or]: [{ blog_id: item.id }, { related_blog_id: item.id }] },
         transaction: t,
       });
+      // drop its SEO meta row so the slug can be reused later
+      if (item.slug) {
+        await models.MetaData.destroy({ where: { type: "blog", blog_id: item.slug }, transaction: t });
+      }
       await item.destroy({ transaction: t });
 
       await t.commit();

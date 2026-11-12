@@ -17,6 +17,7 @@ const {
   validateId,
 } = require("../../request/masters/projectsRequest");
 const { validationResult } = require("express-validator");
+const { parsePickerQuery, searchCondition, pickerPageResult } = require("../../traits/pickerPagination");
 const {
   generateSlug,
   generateUniqueSlug,
@@ -215,6 +216,23 @@ class ProjectsController {
       const where = { is_active: true };
       if (Number.isInteger(excludeId) && excludeId > 0) {
         where.id = { [Op.ne]: excludeId };
+      }
+
+      // Paged mode (picker dropdowns): lean id/title rows, searched server-side.
+      const paging = parsePickerQuery(req.query);
+      if (paging) {
+        const pickedId = parseInt(req.query.id, 10);
+        if (Number.isInteger(pickedId) && pickedId > 0) where.id = pickedId;
+        const search = searchCondition(["title"], paging.search);
+        if (search) Object.assign(where, search);
+        const { rows, count } = await dataModel.findAndCountAll({
+          where,
+          order: [["sort_order", "ASC"], ["id", "ASC"]],
+          attributes: ["id", "title"],
+          limit: paging.limit,
+          offset: paging.offset,
+        });
+        return sendSuccessResponse(res, pickerPageResult(rows, count, paging), "Project list retrieved successfully");
       }
 
       const result = await dataModel.findAll({
